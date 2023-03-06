@@ -364,16 +364,17 @@ public class MTFractionDisplay : MTDisplay {
 
         context.saveGState()
         
-        self.textColor?.setStroke()
-        
+        if let color = self.textColor?.cgColor {
+            context.setStrokeColor(color)
+        }
+
         // draw the horizontal line
         // Note: line thickness of 0 draws the thinnest possible line - we want no line so check for 0s
         if self.lineThickness > 0 {
-            let path = MTBezierPath()
-            path.move(to: CGPointMake(self.position.x, self.position.y + self.linePosition))
-            path.addLine(to: CGPointMake(self.position.x + self.width, self.position.y + self.linePosition))
-            path.lineWidth = self.lineThickness
-            path.stroke()
+            context.move(to: CGPointMake(self.position.x, self.position.y + self.linePosition))
+            context.addLine(to: CGPointMake(self.position.x + self.width, self.position.y + self.linePosition))
+            context.setLineWidth(self.lineThickness)
+            context.strokePath()
         }
         
         context.restoreGState()
@@ -471,9 +472,11 @@ class MTRadicalDisplay : MTDisplay {
         self.degree?.draw(context)
 
         context.saveGState();
-        self.textColor?.setStroke()
-        self.textColor?.setFill()
-
+        if let color = self.textColor?.cgColor {
+          context.setStrokeColor(color)
+          context.setFillColor(color)
+        }
+      
         // Make the current position the origin as all the positions of the sub atoms are relative to the origin.
         context.translateBy(x: self.position.x + _radicalShift, y: self.position.y);
         context.textPosition = CGPoint.zero
@@ -486,15 +489,13 @@ class MTRadicalDisplay : MTDisplay {
         let heightFromTop = topKern;
 
         // draw the horizontal line with the given thickness
-        let path = MTBezierPath()
         let lineStart = CGPointMake(_radicalGlyph!.width, self.ascent - heightFromTop - self.lineThickness / 2); // subtract half the line thickness to center the line
         let lineEnd = CGPointMake(lineStart.x + self.radicand!.width, lineStart.y);
-        path.move(to: lineStart)
-        path.addLine(to: lineEnd)
-        path.lineWidth = lineThickness
-        path.lineCapStyle = .round
-        path.stroke()
-
+        context.move(to: lineStart)
+        context.addLine(to: lineEnd)
+        context.setLineWidth(lineThickness)
+        context.setLineCap(.round)
+        context.strokePath()
         context.restoreGState();
     }
 }
@@ -520,7 +521,9 @@ class MTGlyphDisplay : MTDisplayDS {
         super.draw(context)
         context.saveGState()
 
-        self.textColor?.setFill()
+        if let color = self.textColor?.cgColor {
+            context.setFillColor(color)
+        }
         
         // Make the current position the origin as all the positions of the sub atoms are relative to the origin.
         
@@ -570,8 +573,10 @@ class MTGlyphConstructionDisplay:MTDisplayDS {
         super.draw(context)
         context.saveGState()
         
-        self.textColor?.setFill()
-        
+        if let color = self.textColor?.cgColor {
+            context.setFillColor(color)
+        }
+
         // Make the current position the origin as all the positions of the sub atoms are relative to the origin.
         context.translateBy(x: self.position.x, y: self.position.y - self.shiftDown)
         context.textPosition = CGPoint.zero
@@ -752,8 +757,10 @@ class MTLineDisplay : MTDisplay {
         
         context.saveGState();
         
-        self.textColor?.setStroke()
-        
+        if let color = self.textColor?.cgColor {
+            context.setStrokeColor(color)
+        }
+
         // draw the horizontal line
         let path = MTBezierPath()
         let lineStart = CGPointMake(self.position.x, self.position.y + self.lineShiftUp);
@@ -761,7 +768,7 @@ class MTLineDisplay : MTDisplay {
         path.move(to:lineStart)
         path.addLine(to: lineEnd)
         path.lineWidth = self.lineThickness;
-        path.stroke()
+        context.strokePath()
         
         context.restoreGState();
     }
