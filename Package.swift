@@ -1,12 +1,32 @@
-// swift-tools-version: 5.7
+// swift-tools-version: 5.8
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
 
+//let settings: [SwiftSetting]
+//#if os(Linux)
+//settings = [.unsafeFlags(["-Xfrontend", "-serialize-debugging-options"], .when(configuration: .debug))]
+//#else
+//settings = []
+//#endif
+
+let swiftSettings:[SwiftSetting] = [
+  .unsafeFlags(
+    [
+     "-Xfrontend", "-enable-experimental-feature",
+     "-Xfrontend", "Macros",
+     "-Xfrontend", "-load-plugin-library",
+     "-Xfrontend", "<path/to/macrosPlugin>/libMacroExamplesPlugin.dylib",
+     "-Xfrontend", "-dump-macro-expansions"
+    ]
+  ),
+  //.when(configuration: .debug)
+]
+
 let package = Package(
     name: "SwiftMath",
     defaultLocalization: "en",
-    platforms: [.iOS(.v11), .macOS(.v11)],
+    platforms: [.iOS("16.4"), .macOS("13.3")],
     products: [
         // Products define the executables and libraries a package produces, and make them visible to other packages.
         .library(
@@ -25,7 +45,9 @@ let package = Package(
             dependencies: [],
             resources: [
                 .copy("mathFonts.bundle")
-            ]),
+            ],
+            swiftSettings: swiftSettings
+        ),
         .testTarget(
             name: "SwiftMathTests",
             dependencies: ["SwiftMath"]),

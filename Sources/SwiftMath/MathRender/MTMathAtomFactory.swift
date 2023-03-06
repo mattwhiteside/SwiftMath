@@ -578,7 +578,7 @@ public class MTMathAtomFactory {
      does not do any LaTeX conversion or interpretation. It simply uses `atom(forCharacter:)` to
      convert the characters to atoms. Any character that cannot be converted is ignored. */
     public static func atomList(for string: String) -> MTMathList {
-        let list = MTMathList()
+        var list = MTMathList()
         for character in string {
             if let newAtom = atom(forCharacter: character) {
                 list.add(newAtom)
@@ -683,7 +683,7 @@ public class MTMathAtomFactory {
     }
     
     public static func mathListForCharacters(_ chars:String) -> MTMathList? {
-        let list = MTMathList()
+        var list = MTMathList()
         for ch in chars {
             if let atom = self.atom(forCharacter: ch) {
                 list.add(atom)

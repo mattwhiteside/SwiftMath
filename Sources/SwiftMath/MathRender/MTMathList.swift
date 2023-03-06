@@ -868,7 +868,7 @@ public class MTMathTable: MTMathAtom {
 // MARK: - MTMathList
 
 extension MTMathList {
-    public override var description: String { self.atoms.description }
+    public var description: String { self.atoms.description }
     /// converts the MTMathList to a string form. Note: This is not the LaTeX form.
     public var string: String { self.description }
 }
@@ -878,14 +878,16 @@ extension MTMathList {
     This list can be constructed directly or built with
     the help of the MTMathListBuilder. It is not required that the mathematics represented make sense
     (i.e. this can represent something like "x 2 = +". This list can be used for display using MTLine
-    or can be a list of tokens to be used by a parser after finalizedMathList is called.
+    or can be a list of tokens to be used by a parser after finalizedMTMathList is called.
  
     Note: This class is for **advanced** usage only.
  */
-public class MTMathList : NSObject {
-    
+public struct MTMathList {
+      
     init?(_ list:MTMathList?) {
-        guard let list = list else { return nil }
+        guard let list = list else {
+          return nil          
+        }
         for atom in list.atoms {
             self.atoms.append(atom.copy())
         }
@@ -898,7 +900,7 @@ public class MTMathList : NSObject {
     /// by combining like atoms that occur together and converting unary operators to binary operators.
     /// This function does not modify the current MTMathList
     public var finalized: MTMathList {
-        let finalizedList = MTMathList()
+        var finalizedList = MTMathList()
         let zeroRange = NSMakeRange(0, 0)
         
         var prevNode: MTMathAtom? = nil
@@ -935,16 +937,14 @@ public class MTMathList : NSObject {
         return finalizedList
     }
     
-    public init(atoms: [MTMathAtom]) {
+    public init(atoms: [MTMathAtom] = []) {
         self.atoms.append(contentsOf: atoms)
     }
     
     public init(atom: MTMathAtom) {
         self.atoms.append(atom)
     }
-    
-    public override init() { super.init() }
-    
+        
     func NSParamException(_ param:Any?) {
         if param == nil {
             NSException(name: NSExceptionName(rawValue: "Error"), reason: "Parameter cannot be nil").raise()
@@ -959,7 +959,7 @@ public class MTMathList : NSObject {
     /// Add an atom to the end of the list.
     /// - parameter atom: The atom to be inserted. This cannot be `nil` and cannot have the type `kMTMathAtomBoundary`.
     /// - throws NSException if the atom is of type `kMTMathAtomBoundary`
-    public func add(_ atom: MTMathAtom?) {
+    public mutating func add(_ atom: MTMathAtom?) {
         guard let atom = atom else { return }
         if self.isAtomAllowed(atom) {
             self.atoms.append(atom)
@@ -975,7 +975,7 @@ public class MTMathList : NSObject {
     /// - parameter index: The index where the atom is to be inserted. The index should be less than or equal to the
     ///  number of elements in the math list.
     /// - throws NSException if the atom is of type kMTMathAtomBoundary
-    public func insert(_ atom: MTMathAtom?, at index: Int) {
+    public mutating func insert(_ atom: MTMathAtom?, at index: Int) {
         // NSParamException(atom)
         guard let atom = atom else { return }
         guard self.atoms.indices.contains(index) || index == self.atoms.endIndex else { return }
@@ -990,13 +990,13 @@ public class MTMathList : NSObject {
     
     /// Append the given list to the end of the current list.
     /// - parameter list: The list to append.
-    public func append(_ list: MTMathList?) {
+    public mutating func append(_ list: MTMathList?) {
         guard let list = list else { return }
         self.atoms += list.atoms
     }
     
     /** Removes the last atom from the math list. If there are no atoms in the list this does nothing. */
-    public func removeLastAtom() {
+    public mutating func removeLastAtom() {
         if !self.atoms.isEmpty {
             self.atoms.removeLast()
         }
@@ -1005,13 +1005,13 @@ public class MTMathList : NSObject {
     /// Removes the atom at the given index.
     /// - parameter index: The index at which to remove the atom. Must be less than the number of atoms
     /// in the list.
-    public func removeAtom(at index: Int) {
+    public mutating func removeAtom(at index: Int) {
         NSIndexException(self.atoms, index:index)
         self.atoms.remove(at: index)
     }
     
     /** Removes all the atoms within the given range. */
-    public func removeAtoms(in range: ClosedRange<Int>) {
+    public mutating func removeAtoms(in range: ClosedRange<Int>) {
         NSIndexException(self.atoms, index: range.lowerBound)
         NSIndexException(self.atoms, index: range.upperBound)
         self.atoms.removeSubrange(range)
