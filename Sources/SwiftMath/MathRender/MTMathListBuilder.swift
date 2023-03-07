@@ -178,7 +178,7 @@ public struct MTMathListBuilder {
     }
     
     public mutating func buildInternal(_ oneCharOnly: Bool, stopChar stop: Character?) -> MTMathList? {
-        let list = MTMathList()
+        var list = MTMathList()
         assert(!(oneCharOnly && stop != nil), "Cannot set both oneCharOnly and stopChar.")
         var prevAtom: MTMathAtom? = nil
         while self.hasCharacters {
@@ -401,7 +401,7 @@ public struct MTMathListBuilder {
                         for i in 0..<table.numRows {
                             let row = table.cells[i]
                             for j in 0..<row.count {
-                                let cell = row[j]
+                                var cell = row[j]
                                 if table.environment == "matrix" {
                                     if cell.atoms.count >= 1 && cell.atoms[0].type == .style {
                                         // remove first atom
@@ -685,7 +685,7 @@ public struct MTMathListBuilder {
             if error != nil {
                 return nil;
             }
-            let fracList = MTMathList()
+            var fracList = MTMathList()
             fracList.add(frac)
             return fracList
         } else if command == "\\" || command == "cr" {
