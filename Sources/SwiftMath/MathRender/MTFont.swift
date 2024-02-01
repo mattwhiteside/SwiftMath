@@ -41,7 +41,6 @@ public class MTFont {
     
     static var fontBundle:Bundle {
         // Uses bundle for class so that this can be access by the unit tests.
-      //fatalError()
       Bundle(url: Bundle.main.url(forResource: "mathFonts", withExtension: "bundle")!)!
     }
     

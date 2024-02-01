@@ -26,7 +26,7 @@ public struct MathView : View {
   /** The MTFont to use for rendering. */
   @State private var font:MTFont
   @State private var fontSize:CGFloat = 12
-  @State private var textColor:MTColor?
+  @State private var textColor:MTColor? = MTColor.black
 
   @State private var contentInsets:MTEdgeInsets
   
@@ -54,7 +54,7 @@ public struct MathView : View {
     } else {
       font = MTFontManager.fontManager.defaultFont!
     }
-    textColor = .textColor
+    //self.textColor = .textColor
     textAlignment = .center
     contentInsets = MTEdgeInsetsZero
     latex = latexExpr//this should go last
@@ -66,7 +66,7 @@ public struct MathView : View {
         // print("Pre list = \(_mathList!)")
         if let _displayList = MTTypesetter.createLineForMathList(mathList, font: font, style: currentStyle) {
           var displayList = _displayList
-          displayList.textColor = .textColor
+          displayList.textColor = textColor
           // print("Post list = \(_mathList!)")
           var textX = CGFloat(0)
           let _temp = displayList.width - contentInsets.right

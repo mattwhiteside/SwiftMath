@@ -11,6 +11,7 @@ import Foundation
 #if os(iOS)
 
 import UIKit
+import SwiftUI
 
 public typealias MTView = UIView
 public typealias MTColor = UIColor

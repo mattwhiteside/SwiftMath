@@ -127,7 +127,7 @@ public class MTMathUILabel : MTView {
     private var _fontSize:CGFloat=0
     
     /** This sets the text color of the rendered math formula. The default color is black. */
-    @IBInspectable
+    //@IBInspectable
     public var textColor:MTColor? {
         set {
             guard newValue != nil else { return }
