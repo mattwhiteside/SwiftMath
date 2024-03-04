@@ -11,56 +11,23 @@ import QuartzCore
 import CoreText
 import SwiftUI
 
-@attached(extension, names:arbitrary)
-public macro GenerateExtensions<each T>() = #externalMacro(module: "MattsMacrosImpl", type: "MultipleExtensionGeneratorMacro")
+//@attached(extension, names:arbitrary, conformances:MTDisplay)
+@attached(peer,
+  names: named(MTCTLineDisplay),
+         named(MTMathListDisplay),
+         named(MTGlyphDisplay),
+         named(MTGlyphConstructionDisplay),
+         named(MTLargeOpLimitsDisplay),
+         named(MTFractionDisplay),
+         named(MTRadicalDisplay),
+         named(MTLineDisplay),
+         named(MTAccentDisplay)
+)
+public macro AddMTDisplayConformances(_ structSkeletons:String...) = #externalMacro(module: "MattsMacrosImpl", type: "ContextWalkerMacro")
 
-@attached(extension, names:arbitrary, conformances:MTDisplay)
-@attached(member, names: arbitrary)
-//@attached(peer, names: named(MTDisplay))
-public macro AddMTDisplayConformance() = #externalMacro(module: "MattsMacrosImpl", type: "OneOffConformanceMacro")
-
-
-extension MTDisplay {
-    
-    // needed for isIos6Supported() func above
-//    static var initialized = false
-//    static var supported = false
-    
-    
-    /// Gets the bounding rectangle for the MTDisplay
-    
-    /// For debugging. Shows the object in quick look in Xcode.
-#if os(iOS)
-    func debugQuickLookObject() -> Any {
-        let size = CGSizeMake(self.width, self.ascent + self.descent);
-        UIGraphicsBeginImageContext(size);
-        
-        // get a reference to that context we created
-        let context = UIGraphicsGetCurrentContext()!
-        // translate/flip the graphics context (for transforming from CG* coords to UI* coords
-        context.translateBy(x: 0, y: size.height);
-        context.scaleBy(x: 1.0, y: -1.0);
-        // move the position to (0,0)
-        context.translateBy(x: -self.position.x, y: -self.position.y);
-        
-        // Move the line up by self.descent
-        context.translateBy(x: 0, y: self.descent);
-        // Draw self on context
-        self.draw(context)
-        
-        // generate a new UIImage from the graphics context we drew onto
-        let img = UIGraphicsGetImageFromCurrentImageContext()
-        return img as Any
-    }
-#endif
-}
-
-// MARK: - MTCTLineDisplay
-
-/// A rendering of a single CTLine as an MTDisplay
-///
-///
-@AddMTDisplayConformance
+//public enum MTD {
+  @AddMTDisplayConformances(
+"""
 public struct MTCTLineDisplay {
     /// The CTLine being displayed
     public var line:CTLine!
@@ -132,14 +99,8 @@ public struct MTCTLineDisplay {
     }
     
 }
-
-
-
-// MARK: - MTMathListDisplay
-
-/// An MTLine is a rendered form of MTMathList in one line.
-/// It can render itself using the draw method.
-@AddMTDisplayConformance
+""",
+"""
 public struct MTMathListDisplay {
 
     /**
@@ -166,7 +127,7 @@ public struct MTMathListDisplay {
     init(withDisplays displays:[any MTDisplay], range:NSRange) {
         self.subDisplays = displays
         self.position = CGPoint.zero
-        self.type = .regular 
+        self.type = .regular
         self.index = NSNotFound
         self.range = range
         self.recomputeDimensions()
@@ -227,11 +188,218 @@ public struct MTMathListDisplay {
     }
     
 }
+""",
+"""
+struct MTGlyphDisplay : MTDisplayDS {
+    
+    var glyph:CGGlyph!
+    var font:MTFont?
+    public var shiftDown:CGFloat = 0
+    init(withGlpyh glyph:CGGlyph, range:NSRange, font:MTFont?) {
+        self.font = font
+        self.glyph = glyph
 
-// MARK: - MTFractionDisplay
+        self.position = CGPoint.zero
+        self.range = range
+    }
 
-/// Rendering of an MTFraction as an MTDisplay
-@AddMTDisplayConformance
+    public func draw(_ context: CGContext) {
+        defaultDraw(context)
+        context.saveGState()
+
+        if let color = self.textColor?.cgColor {
+            context.setFillColor(color)
+        }
+        
+        // Make the current position the origin as all the positions of the sub atoms are relative to the origin.
+        
+        context.translateBy(x: self.position.x, y: self.position.y - self.shiftDown);
+        context.textPosition = CGPoint.zero
+
+        var pos = CGPoint.zero
+        if let __glyph = glyph {
+          var _glyph = __glyph
+          CTFontDrawGlyphs(font!.ctFont, &_glyph, &pos, 1, context);
+        }
+            
+        context.restoreGState();
+    }
+
+    var ascent:CGFloat {
+        set { _ascent = newValue }
+        get { _ascent - self.shiftDown }
+    }
+
+    var descent:CGFloat {
+        set { _descent = newValue }
+        get { _descent + self.shiftDown }
+    }
+}
+""",
+"""
+struct MTGlyphConstructionDisplay:MTDisplayDS {
+    var glyphs = [CGGlyph]()
+    var positions = [CGPoint]()
+    var font:MTFont?
+    var numGlyphs:Int=0
+    var shiftDown:CGFloat = 0
+    init(withGlyphs glyphs:[NSNumber?], offsets:[NSNumber?], font:MTFont?) {
+        assert(glyphs.count == offsets.count, "Glyphs and offsets need to match")
+        self.numGlyphs = glyphs.count;
+        self.glyphs = [CGGlyph](repeating: CGGlyph(), count: self.numGlyphs)  //malloc(sizeof(CGGlyph) * _numGlyphs);
+        self.positions = [CGPoint](repeating: CGPoint.zero, count: self.numGlyphs) //malloc(sizeof(CGPoint) * _numGlyphs);
+        for i in 0 ..< self.numGlyphs {
+            self.glyphs[i] = glyphs[i]!.uint16Value
+            self.positions[i] = CGPointMake(0, CGFloat(offsets[i]!.floatValue))
+        }
+        self.font = font
+        self.position = CGPoint.zero
+    }
+    
+    public func draw(_ context: CGContext) {
+        defaultDraw(context)
+        context.saveGState()
+        
+        if let color = self.textColor?.cgColor {
+            context.setFillColor(color)
+        }
+
+        // Make the current position the origin as all the positions of the sub atoms are relative to the origin.
+        context.translateBy(x: self.position.x, y: self.position.y - self.shiftDown)
+        context.textPosition = CGPoint.zero
+        
+        // Draw the glyphs.
+        CTFontDrawGlyphs(font!.ctFont, glyphs, positions, numGlyphs, context)
+        
+        context.restoreGState()
+    }
+    
+    var ascent:CGFloat {
+        set { _ascent = newValue }
+        get { _ascent - self.shiftDown }
+    }
+
+    var descent:CGFloat {
+        set { _descent = newValue }
+        get { _descent + self.shiftDown }
+    }
+    
+}
+""",
+"""
+struct MTLargeOpLimitsDisplay {
+    
+    /** A display representing the upper limit of the large operator. Its position is relative
+     to the parent is not treated as a sub-display.
+     */
+    var upperLimit:MTMathListDisplay?
+    /** A display representing the lower limit of the large operator. Its position is relative
+     to the parent is not treated as a sub-display.
+     */
+    var lowerLimit:MTMathListDisplay?
+    
+    var limitShift:CGFloat=0
+    var upperLimitGap:CGFloat=0 { didSet { self.updateUpperLimitPosition() } }
+    var lowerLimitGap:CGFloat=0 { didSet { self.updateLowerLimitPosition() } }
+    var extraPadding:CGFloat=0
+
+    var nucleus:(any MTDisplay)?
+    
+    init(withNucleus nucleus:(any MTDisplay)?, upperLimit:MTMathListDisplay?, lowerLimit:MTMathListDisplay?, limitShift:CGFloat, extraPadding:CGFloat) {
+        self.upperLimit = upperLimit;
+        self.lowerLimit = lowerLimit;
+        self.nucleus = nucleus;
+        
+        var maxWidth = max(nucleus!.width, upperLimit?.width ?? 0)
+        maxWidth = max(maxWidth, lowerLimit?.width ?? 0)
+        
+        self.limitShift = limitShift;
+        self.upperLimitGap = 0;
+        self.lowerLimitGap = 0;
+        self.extraPadding = extraPadding;  // corresponds to \\xi_13 in TeX
+        self.width = maxWidth;
+    }
+
+    var ascent:CGFloat {
+        set { _ascent = newValue }
+        get {
+            if self.upperLimit != nil {
+                return nucleus!.ascent + extraPadding + self.upperLimit!.ascent + upperLimitGap + self.upperLimit!.descent
+            } else {
+                return nucleus!.ascent
+            }
+        }
+    }
+
+    var descent:CGFloat {
+        set { _descent = newValue }
+        get {
+            if self.lowerLimit != nil {
+                return nucleus!.descent + extraPadding + lowerLimitGap + self.lowerLimit!.descent + self.lowerLimit!.ascent;
+            } else {
+                return nucleus!.descent;
+            }
+        }
+    }
+    
+    var position: CGPoint {
+        set {
+            _position = newValue
+            self.updateLowerLimitPosition()
+            self.updateUpperLimitPosition()
+            self.updateNucleusPosition()
+        }
+        get { _position }
+    }
+
+    mutating func updateLowerLimitPosition() {
+        if self.lowerLimit != nil {
+            // The position of the lower limit includes the position of the MTLargeOpLimitsDisplay
+            // This is to make the positioning of the radical consistent with fractions and radicals
+            // Move the starting point to below the nucleus leaving a gap of _lowerLimitGap and subtract
+            // the ascent to to get the baseline. Also center and shift it to the left by _limitShift.
+            self.lowerLimit!.position = CGPointMake(self.position.x - limitShift + (self.width - lowerLimit!.width)/2,
+                                                   self.position.y - nucleus!.descent - lowerLimitGap - self.lowerLimit!.ascent);
+        }
+    }
+
+    mutating func updateUpperLimitPosition() {
+        if self.upperLimit != nil {
+            // The position of the upper limit includes the position of the MTLargeOpLimitsDisplay
+            // This is to make the positioning of the radical consistent with fractions and radicals
+            // Move the starting point to above the nucleus leaving a gap of _upperLimitGap and add
+            // the descent to to get the baseline. Also center and shift it to the right by _limitShift.
+            self.upperLimit!.position = CGPointMake(self.position.x + limitShift + (self.width - self.upperLimit!.width)/2,
+                                                   self.position.y + nucleus!.ascent + upperLimitGap + self.upperLimit!.descent);
+        }
+    }
+
+    mutating func updateNucleusPosition() {
+        // Center the nucleus
+      let copy = self
+      nucleus?.position = CGPointMake(copy.position.x + (copy.width - copy.nucleus!.width)/2, copy.position.y);
+    }
+    
+    var textColor: MTColor? {
+        set {
+            _textColor = newValue
+            self.upperLimit?.textColor = newValue
+            self.lowerLimit?.textColor = newValue
+            nucleus?.textColor = newValue
+        }
+        get { _textColor }
+    }
+
+    func draw(_ context:CGContext) {
+        defaultDraw(context)
+        // Draw the elements.
+        self.upperLimit?.draw(context)
+        self.lowerLimit?.draw(context)
+        nucleus?.draw(context)
+    }
+}
+""",
+"""
 public struct MTFractionDisplay {
     /** A display representing the numerator of the fraction. Its position is relative
      to the parent and is not treated as a sub-display.
@@ -252,7 +420,7 @@ public struct MTFractionDisplay {
         self.denominator = denominator;
         self.position = position;
         self.range = range;
-        assert(self.range.length == 1, "Fraction range length not 1 - range (\(range.location), \(range.length)")
+        assert(self.range.length == 1, "Fraction range length not 1 - range (\\(range.location), \\(range.length)")
     }
 
     public var ascent:CGFloat {
@@ -322,11 +490,8 @@ public struct MTFractionDisplay {
     }
     
 }
-
-// MARK: - MTRadicalDisplay
-
-/// Rendering of an MTRadical as an MTDisplay
-@AddMTDisplayConformance
+""",
+"""
 struct MTRadicalDisplay {
     
     /** A display representing the radicand of the radical. Its position is relative
@@ -440,229 +605,8 @@ struct MTRadicalDisplay {
         context.restoreGState();
     }
 }
-
-// MARK: - MTGlyphDisplay
-
-/// Rendering a glyph as a display
-@AddMTDisplayConformance
-struct MTGlyphDisplay : MTDisplayDS {
-    
-    var glyph:CGGlyph!
-    var font:MTFont?
-    public var shiftDown:CGFloat = 0
-    init(withGlpyh glyph:CGGlyph, range:NSRange, font:MTFont?) {
-        self.font = font
-        self.glyph = glyph
-
-        self.position = CGPoint.zero
-        self.range = range
-    }
-
-    public func draw(_ context: CGContext) {
-        defaultDraw(context)
-        context.saveGState()
-
-        if let color = self.textColor?.cgColor {
-            context.setFillColor(color)
-        }
-        
-        // Make the current position the origin as all the positions of the sub atoms are relative to the origin.
-        
-        context.translateBy(x: self.position.x, y: self.position.y - self.shiftDown);
-        context.textPosition = CGPoint.zero
-
-        var pos = CGPoint.zero
-        if let __glyph = glyph {
-          var _glyph = __glyph
-          CTFontDrawGlyphs(font!.ctFont, &_glyph, &pos, 1, context);
-        }
-            
-        context.restoreGState();
-    }
-
-    var ascent:CGFloat {
-        set { _ascent = newValue }
-        get { _ascent - self.shiftDown }
-    }
-
-    var descent:CGFloat {
-        set { _descent = newValue }
-        get { _descent + self.shiftDown }
-    }
-}
-
-// MARK: - MTGlyphConstructionDisplay
-@AddMTDisplayConformance
-struct MTGlyphConstructionDisplay:MTDisplayDS {
-    var glyphs = [CGGlyph]()
-    var positions = [CGPoint]()
-    var font:MTFont?
-    var numGlyphs:Int=0
-    var shiftDown:CGFloat = 0
-    init(withGlyphs glyphs:[NSNumber?], offsets:[NSNumber?], font:MTFont?) {
-        assert(glyphs.count == offsets.count, "Glyphs and offsets need to match")
-        self.numGlyphs = glyphs.count;
-        self.glyphs = [CGGlyph](repeating: CGGlyph(), count: self.numGlyphs)  //malloc(sizeof(CGGlyph) * _numGlyphs);
-        self.positions = [CGPoint](repeating: CGPoint.zero, count: self.numGlyphs) //malloc(sizeof(CGPoint) * _numGlyphs);
-        for i in 0 ..< self.numGlyphs {
-            self.glyphs[i] = glyphs[i]!.uint16Value
-            self.positions[i] = CGPointMake(0, CGFloat(offsets[i]!.floatValue))
-        }
-        self.font = font
-        self.position = CGPoint.zero
-    }
-    
-    public func draw(_ context: CGContext) {
-        defaultDraw(context)
-        context.saveGState()
-        
-        if let color = self.textColor?.cgColor {
-            context.setFillColor(color)
-        }
-
-        // Make the current position the origin as all the positions of the sub atoms are relative to the origin.
-        context.translateBy(x: self.position.x, y: self.position.y - self.shiftDown)
-        context.textPosition = CGPoint.zero
-        
-        // Draw the glyphs.
-        CTFontDrawGlyphs(font!.ctFont, glyphs, positions, numGlyphs, context)
-        
-        context.restoreGState()
-    }
-    
-    var ascent:CGFloat {
-        set { _ascent = newValue }
-        get { _ascent - self.shiftDown }
-    }
-
-    var descent:CGFloat {
-        set { _descent = newValue }
-        get { _descent + self.shiftDown }
-    }
-    
-}
-
-// MARK: - MTLargeOpLimitsDisplay
-
-/// Rendering a large operator with limits as an MTDisplay
-@AddMTDisplayConformance
-struct MTLargeOpLimitsDisplay {
-    
-    /** A display representing the upper limit of the large operator. Its position is relative
-     to the parent is not treated as a sub-display.
-     */
-    var upperLimit:MTMathListDisplay?
-    /** A display representing the lower limit of the large operator. Its position is relative
-     to the parent is not treated as a sub-display.
-     */
-    var lowerLimit:MTMathListDisplay?
-    
-    var limitShift:CGFloat=0
-    var upperLimitGap:CGFloat=0 { didSet { self.updateUpperLimitPosition() } }
-    var lowerLimitGap:CGFloat=0 { didSet { self.updateLowerLimitPosition() } }
-    var extraPadding:CGFloat=0
-
-    var nucleus:(any MTDisplay)?
-    
-    init(withNucleus nucleus:(any MTDisplay)?, upperLimit:MTMathListDisplay?, lowerLimit:MTMathListDisplay?, limitShift:CGFloat, extraPadding:CGFloat) {
-        self.upperLimit = upperLimit;
-        self.lowerLimit = lowerLimit;
-        self.nucleus = nucleus;
-        
-        var maxWidth = max(nucleus!.width, upperLimit?.width ?? 0)
-        maxWidth = max(maxWidth, lowerLimit?.width ?? 0)
-        
-        self.limitShift = limitShift;
-        self.upperLimitGap = 0;
-        self.lowerLimitGap = 0;
-        self.extraPadding = extraPadding;  // corresponds to \xi_13 in TeX
-        self.width = maxWidth;
-    }
-
-    var ascent:CGFloat {
-        set { _ascent = newValue }
-        get {
-            if self.upperLimit != nil {
-                return nucleus!.ascent + extraPadding + self.upperLimit!.ascent + upperLimitGap + self.upperLimit!.descent
-            } else {
-                return nucleus!.ascent
-            }
-        }
-    }
-
-    var descent:CGFloat {
-        set { _descent = newValue }
-        get {
-            if self.lowerLimit != nil {
-                return nucleus!.descent + extraPadding + lowerLimitGap + self.lowerLimit!.descent + self.lowerLimit!.ascent;
-            } else {
-                return nucleus!.descent;
-            }
-        }
-    }
-    
-    var position: CGPoint {
-        set {
-            _position = newValue
-            self.updateLowerLimitPosition()
-            self.updateUpperLimitPosition()
-            self.updateNucleusPosition()
-        }
-        get { _position }
-    }
-
-    mutating func updateLowerLimitPosition() {
-        if self.lowerLimit != nil {
-            // The position of the lower limit includes the position of the MTLargeOpLimitsDisplay
-            // This is to make the positioning of the radical consistent with fractions and radicals
-            // Move the starting point to below the nucleus leaving a gap of _lowerLimitGap and subtract
-            // the ascent to to get the baseline. Also center and shift it to the left by _limitShift.
-            self.lowerLimit!.position = CGPointMake(self.position.x - limitShift + (self.width - lowerLimit!.width)/2,
-                                                   self.position.y - nucleus!.descent - lowerLimitGap - self.lowerLimit!.ascent);
-        }
-    }
-
-    mutating func updateUpperLimitPosition() {
-        if self.upperLimit != nil {
-            // The position of the upper limit includes the position of the MTLargeOpLimitsDisplay
-            // This is to make the positioning of the radical consistent with fractions and radicals
-            // Move the starting point to above the nucleus leaving a gap of _upperLimitGap and add
-            // the descent to to get the baseline. Also center and shift it to the right by _limitShift.
-            self.upperLimit!.position = CGPointMake(self.position.x + limitShift + (self.width - self.upperLimit!.width)/2,
-                                                   self.position.y + nucleus!.ascent + upperLimitGap + self.upperLimit!.descent);
-        }
-    }
-
-    mutating func updateNucleusPosition() {
-        // Center the nucleus
-      let copy = self
-      nucleus?.position = CGPointMake(copy.position.x + (copy.width - copy.nucleus!.width)/2, copy.position.y);
-    }
-    
-    var textColor: MTColor? {
-        set {
-            _textColor = newValue
-            self.upperLimit?.textColor = newValue
-            self.lowerLimit?.textColor = newValue
-            nucleus?.textColor = newValue
-        }
-        get { _textColor }
-    }
-
-    func draw(_ context:CGContext) {
-        defaultDraw(context)
-        // Draw the elements.
-        self.upperLimit?.draw(context)
-        self.lowerLimit?.draw(context)
-        nucleus?.draw(context)
-    }
-    
-}
-
-// MARK: - MTLineDisplay
-
-/// Rendering of an list with an overline or underline
-@AddMTDisplayConformance
+""",
+"""
 struct MTLineDisplay {
     
   /** A display representing the inner list that is underlined. Its position is relative
@@ -723,11 +667,8 @@ struct MTLineDisplay {
     }
     
 }
-
-// MARK: - MTAccentDisplay
-
-/// Rendering an accent as a display
-@AddMTDisplayConformance
+""",
+"""
 struct MTAccentDisplay {
     
     /** A display representing the inner list that is accented. Its position is relative
@@ -782,4 +723,116 @@ struct MTAccentDisplay {
         context.restoreGState();
     }
     
+}
+""")
+  public protocol MTDisplay {
+    /// The distance from the axis to the top of the display
+    var ascent:CGFloat{
+      get
+      set
+    }
+    
+    /// The distance from the axis to the bottom of the display
+    var descent:CGFloat{
+      get
+      set
+    }
+    
+    /// The width of the display
+    var width:CGFloat{
+      get
+      set
+    }
+    
+    /// Position of the display with respect to the parent view or display.
+    var position: CGPoint{
+      get
+      set
+    }
+    
+    /// The range of characters supported by this item
+    var range:NSRange{
+      get
+      set
+    }
+    
+    /// Whether the display has a subscript/superscript following it.
+    var hasScript:Bool{
+      get
+      set
+    }
+    
+    /// The text color for this display
+    var textColor: MTColor?{
+      get
+      set
+    }
+    
+    /// The local color, if the color was mutated local with the color command
+    var localTextColor: MTColor?{
+      get
+      set
+    }
+    
+    /// The background color for this display
+    var localBackgroundColor: MTColor?{
+      get
+      set
+    }
+    
+    
+    func draw(_ context:CGContext)
+    func displayBounds() -> CGRect
+  }
+//}
+
+//public typealias MTDisplay = MTDisplayConformances.MTDisplay
+//public typealias MTMathListDisplay = MTDisplayConformances.MTMathListDisplay
+//public typealias MTCTLineDisplay = MTDisplayConformances.MTCTLineDisplay
+//typealias MTGlyphDisplay = MTDisplayConformances.MTGlyphDisplay
+//typealias MTGlyphConstructionDisplay = MTDisplayConformances.MTGlyphConstructionDisplay
+
+extension MTDisplay {
+  
+  internal func defaultDraw(_ context:CGContext) {
+    if self.localBackgroundColor != nil {
+      context.saveGState()
+      context.setBlendMode(.normal)
+      context.setFillColor(self.localBackgroundColor!.cgColor)
+      context.fill(self.displayBounds())
+      context.restoreGState()
+    }
+  }
+  
+  public func draw(_ context:CGContext) {
+    defaultDraw(context)
+  }
+  
+  public func displayBounds() -> CGRect {
+    CGRectMake(self.position.x, self.position.y - self.descent, self.width, self.ascent + self.descent)
+  }
+
+#if os(iOS)
+  func debugQuickLookObject() -> Any {
+      let size = CGSizeMake(self.width, self.ascent + self.descent);
+      UIGraphicsBeginImageContext(size);
+      
+      // get a reference to that context we created
+      let context = UIGraphicsGetCurrentContext()!
+      // translate/flip the graphics context (for transforming from CG* coords to UI* coords
+      context.translateBy(x: 0, y: size.height);
+      context.scaleBy(x: 1.0, y: -1.0);
+      // move the position to (0,0)
+      context.translateBy(x: -self.position.x, y: -self.position.y);
+      
+      // Move the line up by self.descent
+      context.translateBy(x: 0, y: self.descent);
+      // Draw self on context
+      self.draw(context)
+      
+      // generate a new UIImage from the graphics context we drew onto
+      let img = UIGraphicsGetImageFromCurrentImageContext()
+      return img as Any
+  }
+#endif
 }

@@ -369,12 +369,10 @@ class MTTypesetter {
         return self.createLineForMathList(finalizedList, font:font, style:style, cramped:false)
     }
     
-    // Internal
     static func createLineForMathList(_ mathList:MTMathList?, font:MTFont?, style:MTLineStyle, cramped:Bool) -> MTMathListDisplay? {
         return self.createLineForMathList(mathList, font:font, style:style, cramped:cramped, spaced:false)
     }
     
-    // Internal
     static func createLineForMathList(_ mathList:MTMathList?, font:MTFont?, style:MTLineStyle, cramped:Bool, spaced:Bool) -> MTMathListDisplay? {
         assert(font != nil)
         let preprocessedAtoms = self.preprocessMathList(mathList)
