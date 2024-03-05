@@ -177,8 +177,8 @@ public class MTMathUILabel : MTView {
     private var _textAlignment = MTTextAlignment.left
     
     /** The internal display of the MTMathUILabel. This is for advanced use only. */
-    public var displayList: MTMathListDisplay? { _displayList }
-    private var _displayList:MTMathListDisplay?
+    public var displayList: MT.MathListDisplay? { _displayList }
+    private var _displayList:MT.MathListDisplay?
     
     public var currentStyle:MTLineStyle {
         switch _labelMode {
@@ -270,7 +270,7 @@ public class MTMathUILabel : MTView {
     func _sizeThatFits(_ size:CGSize) -> CGSize {
         guard _mathList != nil else { return size }
         var size = size
-        //var displayList:MTMathListDisplay? = nil
+        //var displayList:MT.MathListDisplay? = nil
         let displayList = MTTypesetter.createLineForMathList(_mathList, font: font, style: currentStyle)
         size.width = displayList!.width + contentInsets.left + contentInsets.right
         size.height = displayList!.ascent + displayList!.descent + contentInsets.top + contentInsets.bottom

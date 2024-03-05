@@ -13,22 +13,22 @@ import SwiftUI
 
 //@attached(extension, names:arbitrary, conformances:MTDisplay)
 @attached(peer,
-  names: named(MTCTLineDisplay),
-         named(MTMathListDisplay),
-         named(MTGlyphDisplay),
-         named(MTGlyphConstructionDisplay),
-         named(MTLargeOpLimitsDisplay),
-         named(MTFractionDisplay),
-         named(MTRadicalDisplay),
-         named(MTLineDisplay),
-         named(MTAccentDisplay)
+  names: named(CTLineDisplay),
+         named(MathListDisplay),
+         named(GlyphDisplay),
+         named(GlyphConstructionDisplay),
+         named(LargeOpLimitsDisplay),
+         named(FractionDisplay),
+         named(RadicalDisplay),
+         named(LineDisplay),
+         named(AccentDisplay)
 )
 public macro AddMTDisplayConformances(_ structSkeletons:String...) = #externalMacro(module: "MattsMacrosImpl", type: "ContextWalkerMacro")
 
-//public enum MTD {
+public enum MT {
   @AddMTDisplayConformances(
 """
-public struct MTCTLineDisplay {
+public struct CTLineDisplay {
     /// The CTLine being displayed
     public var line:CTLine!
     /// The attributed string used to generate the CTLineRef. Note setting this does not reset the dimensions of
@@ -101,7 +101,7 @@ public struct MTCTLineDisplay {
 }
 """,
 """
-public struct MTMathListDisplay {
+public struct MathListDisplay {
 
     /**
           The type of position for a line, i.e. subscript/superscript or regular.
@@ -119,12 +119,12 @@ public struct MTMathListDisplay {
     public var type:LinePosition = .regular
     /// An array of MTDisplays which are positioned relative to the position of the
     /// the current display.
-    public fileprivate(set) var subDisplays = [any MTDisplay]()
+    public fileprivate(set) var subDisplays = [any Display]()
     /// If a subscript or superscript this denotes the location in the parent MTList. For a
     /// regular list this is NSNotFound
     public var index: Int = 0
     
-    init(withDisplays displays:[any MTDisplay], range:NSRange) {
+    init(withDisplays displays:[any Display], range:NSRange) {
         self.subDisplays = displays
         self.position = CGPoint.zero
         self.type = .regular
@@ -190,7 +190,7 @@ public struct MTMathListDisplay {
 }
 """,
 """
-struct MTGlyphDisplay : MTDisplayDS {
+struct GlyphDisplay : MTDisplayDS {
     
     var glyph:CGGlyph!
     var font:MTFont?
@@ -237,7 +237,7 @@ struct MTGlyphDisplay : MTDisplayDS {
 }
 """,
 """
-struct MTGlyphConstructionDisplay:MTDisplayDS {
+struct GlyphConstructionDisplay:MTDisplayDS {
     var glyphs = [CGGlyph]()
     var positions = [CGPoint]()
     var font:MTFont?
@@ -287,25 +287,25 @@ struct MTGlyphConstructionDisplay:MTDisplayDS {
 }
 """,
 """
-struct MTLargeOpLimitsDisplay {
+struct LargeOpLimitsDisplay {
     
     /** A display representing the upper limit of the large operator. Its position is relative
      to the parent is not treated as a sub-display.
      */
-    var upperLimit:MTMathListDisplay?
+    var upperLimit:MT.MathListDisplay?
     /** A display representing the lower limit of the large operator. Its position is relative
      to the parent is not treated as a sub-display.
      */
-    var lowerLimit:MTMathListDisplay?
+    var lowerLimit:MT.MathListDisplay?
     
     var limitShift:CGFloat=0
     var upperLimitGap:CGFloat=0 { didSet { self.updateUpperLimitPosition() } }
     var lowerLimitGap:CGFloat=0 { didSet { self.updateLowerLimitPosition() } }
     var extraPadding:CGFloat=0
 
-    var nucleus:(any MTDisplay)?
+    var nucleus:(any Display)?
     
-    init(withNucleus nucleus:(any MTDisplay)?, upperLimit:MTMathListDisplay?, lowerLimit:MTMathListDisplay?, limitShift:CGFloat, extraPadding:CGFloat) {
+    init(withNucleus nucleus:(any Display)?, upperLimit:MT.MathListDisplay?, lowerLimit:MT.MathListDisplay?, limitShift:CGFloat, extraPadding:CGFloat) {
         self.upperLimit = upperLimit;
         self.lowerLimit = lowerLimit;
         self.nucleus = nucleus;
@@ -400,22 +400,22 @@ struct MTLargeOpLimitsDisplay {
 }
 """,
 """
-public struct MTFractionDisplay {
+public struct FractionDisplay {
     /** A display representing the numerator of the fraction. Its position is relative
      to the parent and is not treated as a sub-display.
      */
-    public fileprivate(set) var numerator:MTMathListDisplay?
+    public fileprivate(set) var numerator:MT.MathListDisplay?
     /** A display representing the denominator of the fraction. Its position is relative
      to the parent is not treated as a sub-display.
      */
-    public fileprivate(set) var denominator:MTMathListDisplay?
+    public fileprivate(set) var denominator:MT.MathListDisplay?
     
     var numeratorUp:CGFloat=0 { didSet { self.updateNumeratorPosition() } }
     var denominatorDown:CGFloat=0 { didSet { self.updateDenominatorPosition() } }
     var linePosition:CGFloat=0
     var lineThickness:CGFloat=0
     
-    init(withNumerator numerator:MTMathListDisplay?, denominator:MTMathListDisplay?, position:CGPoint, range:NSRange) {
+    init(withNumerator numerator:MT.MathListDisplay?, denominator:MT.MathListDisplay?, position:CGPoint, range:NSRange) {
         self.numerator = numerator;
         self.denominator = denominator;
         self.position = position;
@@ -492,16 +492,16 @@ public struct MTFractionDisplay {
 }
 """,
 """
-struct MTRadicalDisplay {
+struct RadicalDisplay {
     
     /** A display representing the radicand of the radical. Its position is relative
      to the parent is not treated as a sub-display.
      */
-    public fileprivate(set) var radicand:MTMathListDisplay?
+    public fileprivate(set) var radicand:MT.MathListDisplay?
     /** A display representing the degree of the radical. Its position is relative
      to the parent is not treated as a sub-display.
      */
-    public fileprivate(set) var degree:MTMathListDisplay?
+    public fileprivate(set) var degree:MT.MathListDisplay?
     
     var position: CGPoint {
         set {
@@ -520,13 +520,13 @@ struct MTRadicalDisplay {
         get { _textColor }
     }
     
-    private var _radicalGlyph:(any MTDisplay)?
+    private var _radicalGlyph:(any Display)?
     private var _radicalShift:CGFloat=0
     
     var topKern:CGFloat=0
     var lineThickness:CGFloat=0
     
-    init(withRadicand radicand:MTMathListDisplay?, glyph:any MTDisplay, position:CGPoint, range:NSRange) {
+    init(withRadicand radicand:MT.MathListDisplay?, glyph:any Display, position:CGPoint, range:NSRange) {
         self.radicand = radicand
         _radicalGlyph = glyph
         _radicalShift = 0
@@ -535,7 +535,7 @@ struct MTRadicalDisplay {
         self.range = range
     }
 
-    mutating func setDegree(_ degree:MTMathListDisplay?, fontMetrics:MTFontMathTable?) {
+    mutating func setDegree(_ degree:MT.MathListDisplay?, fontMetrics:MTFontMathTable?) {
         // sets up the degree of the radical
         var kernBefore = fontMetrics!.radicalKernBeforeDegree;
         let kernAfter = fontMetrics!.radicalKernAfterDegree;
@@ -607,16 +607,16 @@ struct MTRadicalDisplay {
 }
 """,
 """
-struct MTLineDisplay {
+struct LineDisplay {
     
   /** A display representing the inner list that is underlined. Its position is relative
    to the parent is not treated as a sub-display.
    */
-  var inner:MTMathListDisplay?
+  var inner:MT.MathListDisplay?
   var lineShiftUp:CGFloat=0
   var lineThickness:CGFloat=0
   
-  init(withInner inner:MTMathListDisplay?, position:CGPoint, range:NSRange) {
+  init(withInner inner:MT.MathListDisplay?, position:CGPoint, range:NSRange) {
     self.inner = inner;
     self.position = position;
     self.range = range;
@@ -669,18 +669,18 @@ struct MTLineDisplay {
 }
 """,
 """
-struct MTAccentDisplay {
+struct AccentDisplay {
     
     /** A display representing the inner list that is accented. Its position is relative
      to the parent is not treated as a sub-display.
      */
-    var accentee:MTMathListDisplay?
+    var accentee:MathListDisplay?
     
     /** A display representing the accent. Its position is relative to the current display.
      */
-    var accent:MTGlyphDisplay?
+    var accent:GlyphDisplay?
     
-    init(withAccent glyph:MTGlyphDisplay?, accentee:MTMathListDisplay?, range:NSRange) {
+    init(withAccent glyph:GlyphDisplay?, accentee:MathListDisplay?, range:NSRange) {
         self.accent = glyph
         self.accentee = accentee
         self.accentee?.position = CGPoint.zero
@@ -725,7 +725,7 @@ struct MTAccentDisplay {
     
 }
 """)
-  public protocol MTDisplay {
+  public protocol Display {
     /// The distance from the axis to the top of the display
     var ascent:CGFloat{
       get
@@ -784,15 +784,15 @@ struct MTAccentDisplay {
     func draw(_ context:CGContext)
     func displayBounds() -> CGRect
   }
-//}
+}
 
 //public typealias MTDisplay = MTDisplayConformances.MTDisplay
-//public typealias MTMathListDisplay = MTDisplayConformances.MTMathListDisplay
+//public typealias MT.MathListDisplay = MTDisplayConformances.MT.MathListDisplay
 //public typealias MTCTLineDisplay = MTDisplayConformances.MTCTLineDisplay
 //typealias MTGlyphDisplay = MTDisplayConformances.MTGlyphDisplay
 //typealias MTGlyphConstructionDisplay = MTDisplayConformances.MTGlyphConstructionDisplay
 
-extension MTDisplay {
+extension MT.Display {
   
   internal func defaultDraw(_ context:CGContext) {
     if self.localBackgroundColor != nil {

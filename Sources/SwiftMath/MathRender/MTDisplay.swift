@@ -11,7 +11,7 @@ import CoreText
 import SwiftUI
 
 // The Downshift protocol allows an MTDisplay to be shifted down by a given amount.
-protocol MTDisplayDS : MTDisplay {
+protocol MTDisplayDS : MT.Display {
     var shiftDown:CGFloat { set get }
 }
 

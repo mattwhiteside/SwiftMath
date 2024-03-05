@@ -37,8 +37,8 @@ public struct MathView : View {
   @State private var textAlignment:MTTextAlignment = MTTextAlignment.left
   
 //  /** The internal display of the MTMathUILabel. This is for advanced use only. */
-//  public var displayList: MTMathListDisplay? { _displayList }
-//  private var _displayList:MTMathListDisplay?
+//  public var displayList: MT.MathListDisplay? { _displayList }
+//  private var _displayList:MT.MathListDisplay?
   public var currentStyle:MTLineStyle {
     switch labelMode {
       case .display: return .display
