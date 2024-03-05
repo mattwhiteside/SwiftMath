@@ -11,18 +11,7 @@ import QuartzCore
 import CoreText
 import SwiftUI
 
-//@attached(extension, names:arbitrary, conformances:MTDisplay)
-@attached(peer,
-  names: named(CTLineDisplay),
-         named(MathListDisplay),
-         named(GlyphDisplay),
-         named(GlyphConstructionDisplay),
-         named(LargeOpLimitsDisplay),
-         named(FractionDisplay),
-         named(RadicalDisplay),
-         named(LineDisplay),
-         named(AccentDisplay)
-)
+@attached(peer, names:arbitrary)
 public macro AddMTDisplayConformances(_ structSkeletons:String...) = #externalMacro(module: "MattsMacrosImpl", type: "ContextWalkerMacro")
 
 public enum MT {
@@ -786,11 +775,6 @@ struct AccentDisplay {
   }
 }
 
-//public typealias MTDisplay = MTDisplayConformances.MTDisplay
-//public typealias MT.MathListDisplay = MTDisplayConformances.MT.MathListDisplay
-//public typealias MTCTLineDisplay = MTDisplayConformances.MTCTLineDisplay
-//typealias MTGlyphDisplay = MTDisplayConformances.MTGlyphDisplay
-//typealias MTGlyphConstructionDisplay = MTDisplayConformances.MTGlyphConstructionDisplay
 
 extension MT.Display {
   
