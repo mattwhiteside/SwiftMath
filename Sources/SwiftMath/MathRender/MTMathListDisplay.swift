@@ -11,7 +11,20 @@ import QuartzCore
 import CoreText
 import SwiftUI
 
-@attached(peer, names:arbitrary)
+@attached(peer, 
+  names:
+    //TODO: these 'named' values can all be replaced with 'arbitrary
+    //when a newer compiler is available.
+    named(CTLineDisplay),
+    named(MathListDisplay),
+    named(GlyphDisplay),
+    named(GlyphConstructionDisplay),
+    named(LargeOpLimitsDisplay),
+    named(FractionDisplay),
+    named(RadicalDisplay),
+    named(LineDisplay),
+    named(AccentDisplay)
+)
 public macro AddMTDisplayConformances(_ structSkeletons:String...) = #externalMacro(module: "MattsMacrosImpl", type: "ContextWalkerMacro")
 
 public enum MT {
