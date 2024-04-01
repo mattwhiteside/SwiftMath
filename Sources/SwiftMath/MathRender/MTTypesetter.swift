@@ -5,11 +5,28 @@
 //  This software may be modified and distributed under the terms of the
 //  MIT license. See the LICENSE file for details.
 //
-
-import Foundation
+//import Foundation
 import CoreText
-
+import FoundationEssentials
+import SwiftUI
 // MARK: - Inter Element Spacing
+
+//temp stuff to eliminate dependency on Foundation
+public struct __NSRange {
+  var location:Int
+  var length:Int
+  var upperLimit:Int {
+    get {
+      location + length
+    }
+  }
+  
+  func union(with other:__NSRange) -> __NSRange {
+    fatalError()
+  }
+}
+
+let NSNotFound = Int.max
 
 enum InterElementSpaceType : Int {
     case invalid = -1
@@ -20,29 +37,106 @@ enum InterElementSpaceType : Int {
     case nsThick
 }
 
+
+extension FoundationEssentials.AttributeScopes {
+  var matt: CoreTextAttributes.Type { CoreTextAttributes.self }
+
+  @frozen
+  @_nonSendable
+  public enum FontAttribute : FoundationEssentials.CodableAttributedStringKey {
+    public typealias Value = CTFont
+    public static let name = String(kCTFontAttributeName)
+
+    public static func decode(from decoder: any Decoder) throws -> CTFont {
+      fatalError()
+    }
+    
+    public static func encode(_ value: CTFont, to encoder: any Encoder) throws {
+      fatalError()
+    }
+  }
+  
+  @frozen
+  @_nonSendable
+  public enum ForegroundColorFromContextAttribute : FoundationEssentials.CodableAttributedStringKey {
+    public typealias Value = Bool
+    public static let name = String(kCTForegroundColorFromContextAttributeName)
+  }
+
+  @frozen
+  @_nonSendable
+  public enum KerningAttribute : FoundationEssentials.CodableAttributedStringKey {
+    public typealias Value = CGFloat
+    public static let name = String(kCTKernAttributeName)
+  }
+
+  @frozen
+  @_nonSendable
+  public enum LigatureAttribute : FoundationEssentials.CodableAttributedStringKey {
+    public typealias Value = UInt
+    public static let name = String(kCTLigatureAttributeName)
+  }
+    
+  @frozen
+  @_nonSendable
+  public enum ForegroundColorAttribute : FoundationEssentials.CodableAttributedStringKey {
+    public static func decode(from decoder: any Decoder) throws -> CGColor {
+      fatalError()
+    }
+    
+    public static func encode(_ value: CGColor, to encoder: any Encoder) throws {
+      fatalError()
+    }
+    
+    public typealias Value = CGColor
+    public static let name = String(kCTForegroundColorAttributeName)
+  }
+
+  @_nonSendable
+  public struct CoreTextAttributes : FoundationEssentials.AttributeScope {
+    public let font: FontAttribute
+    public let foregroundColorFromContext: ForegroundColorFromContextAttribute
+    public let kerning: KerningAttribute
+    public let ligature: KerningAttribute
+    public let foregroundColor: ForegroundColorAttribute
+  }
+    
+}
+
+
+extension FoundationEssentials.AttributeDynamicLookup {
+  subscript<T: FoundationEssentials.AttributedStringKey>(dynamicMember keyPath: KeyPath<FoundationEssentials.AttributeScopes.CoreTextAttributes, T>) -> T {
+    get { self[T.self] }
+  }
+}
+
+
+
 var interElementSpaceArray = [[InterElementSpaceType]]()
-private let interElementLock = NSLock()
+//private let interElementLock = NSLock()
+
+let queue = DispatchQueue(label: "interElementQueue")
 
 func getInterElementSpaces() -> [[InterElementSpaceType]] {
+
+  queue.sync {() -> [[InterElementSpaceType]] in
     if interElementSpaceArray.isEmpty {
-        
-        interElementLock.lock()
-        defer { interElementLock.unlock() }
-        guard interElementSpaceArray.isEmpty else { return interElementSpaceArray }
-        
-        interElementSpaceArray =
-        //   ordinary   operator   binary     relation  open       close     punct     fraction
-        [  [.none,     .thin,     .nsMedium, .nsThick, .none,     .none,    .none,    .nsThin],    // ordinary
-           [.thin,     .thin,     .invalid,  .nsThick, .none,     .none,    .none,    .nsThin],    // operator
-           [.nsMedium, .nsMedium, .invalid,  .invalid, .nsMedium, .invalid, .invalid, .nsMedium],  // binary
-           [.nsThick,  .nsThick,  .invalid,  .none,    .nsThick,  .none,    .none,    .nsThick],   // relation
-           [.none,     .none,     .invalid,  .none,    .none,     .none,    .none,    .none],      // open
-           [.none,     .thin,     .nsMedium, .nsThick, .none,     .none,    .none,    .nsThin],    // close
-           [.nsThin,   .nsThin,   .invalid,  .nsThin,  .nsThin,   .nsThin,  .nsThin,  .nsThin],    // punct
-           [.nsThin,   .thin,     .nsMedium, .nsThick, .nsThin,   .none,    .nsThin,  .nsThin],    // fraction
-           [.nsMedium, .nsThin,   .nsMedium, .nsThick, .none,     .none,    .none,    .nsThin]]    // radical
+      interElementSpaceArray =
+      // ordinary   operator   binary     relation  open       close     punct     fraction
+      [
+        [.none,     .thin,     .nsMedium, .nsThick, .none,     .none,    .none,    .nsThin],    // ordinary
+        [.thin,     .thin,     .invalid,  .nsThick, .none,     .none,    .none,    .nsThin],    // operator
+        [.nsMedium, .nsMedium, .invalid,  .invalid, .nsMedium, .invalid, .invalid, .nsMedium],  // binary
+        [.nsThick,  .nsThick,  .invalid,  .none,    .nsThick,  .none,    .none,    .nsThick],   // relation
+        [.none,     .none,     .invalid,  .none,    .none,     .none,    .none,    .none],      // open
+        [.none,     .thin,     .nsMedium, .nsThick, .none,     .none,    .none,    .nsThin],    // close
+        [.nsThin,   .nsThin,   .invalid,  .nsThin,  .nsThin,   .nsThin,  .nsThin,  .nsThin],    // punct
+        [.nsThin,   .thin,     .nsMedium, .nsThick, .nsThin,   .none,    .nsThin,  .nsThin],    // fraction
+        [.nsMedium, .nsThin,   .nsMedium, .nsThick, .none,     .none,    .none,    .nsThin]     // radical
+      ]
     }
     return interElementSpaceArray
+  }
 }
 
 
@@ -161,7 +255,7 @@ func getDefaultStyle(_ ch:Character) -> UTF32Char {
         // . is treated as a number in our code, but it doesn't change fonts.
         return ch.utf32Char
     } else {
-        NSException(name: NSExceptionName("IllegalCharacter"), reason: "Unknown character \(ch) for default style.").raise()
+      fatalError("Illegal character: \(ch) for default style")
     }
     return ch.utf32Char
 }
@@ -324,16 +418,7 @@ func styleCharacter(_ ch:Character, fontStyle:MTFontStyle) -> UTF32Char {
 }
 
 func changeFont(_ str:String, fontStyle:MTFontStyle) -> String {
-    var retval = ""
-    let codes = Array(str)
-    for i in 0..<str.count {
-        let ch = codes[i]
-        var unicode = styleCharacter(ch, fontStyle: fontStyle);
-        unicode = NSSwapHostIntToLittle(unicode)
-        let charStr = String(UnicodeScalar(unicode)!)
-        retval.append(charStr)
-    }
-    return retval
+  str.map{String(UnicodeScalar(styleCharacter($0, fontStyle: fontStyle).littleEndian)!)}.joined()
 }
 
 func getBboxDetails(_ bbox:CGRect, ascent:inout CGFloat, descent:inout CGFloat) {
@@ -344,14 +429,14 @@ func getBboxDetails(_ bbox:CGRect, ascent:inout CGFloat, descent:inout CGFloat) 
 }
 
 // MARK: - MTTypesetter
-
+@available(macOS 14, iOS 17, tvOS 15, watchOS 8, *)
 class MTTypesetter {
     var font:MTFont!
     var displayAtoms = [any MT.Display]()
     var currentPosition = CGPoint.zero
-    var currentLine:NSMutableAttributedString!
+    var currentLine:FoundationEssentials.AttributedString!
     var currentAtoms = [MTMathAtom]()   // List of atoms that make the line
-    var currentLineIndexRange = NSMakeRange(0, 0)
+    var currentLineIndexRange = __NSRange(location:0, length: 0)
     var style:MTLineStyle { didSet { _styleFont = nil } }
     private var _styleFont:MTFont?
     var styleFont:MTFont {
@@ -379,23 +464,23 @@ class MTTypesetter {
         let typesetter = MTTypesetter(withFont:font, style:style, cramped:cramped, spaced:spaced)
         typesetter.createDisplayAtoms(preprocessedAtoms)
         let lastAtom = mathList!.atoms.last
-        let last = lastAtom?.indexRange ?? NSMakeRange(0, 0)
-        let line = MT.MathListDisplay(withDisplays: typesetter.displayAtoms, range: NSMakeRange(0, NSMaxRange(last)))
+        let last = lastAtom?.indexRange ?? __NSRange(location:0, length:0)
+        let line = MT.MathListDisplay(withDisplays: typesetter.displayAtoms, range: __NSRange(location:0, length:last.upperLimit))
         return line
     }
     
     static var placeholderColor: MTColor { MTColor.blue }
     
     init(withFont font:MTFont?, style:MTLineStyle, cramped:Bool, spaced:Bool) {
-        self.font = font
-        self.displayAtoms = [any MT.Display]()
-        self.currentPosition = CGPoint.zero
-        self.cramped = cramped
-        self.spaced = spaced
-        self.currentLine = NSMutableAttributedString()
-        self.currentAtoms = [MTMathAtom]()
-        self.style = style
-        self.currentLineIndexRange = NSMakeRange(NSNotFound, NSNotFound);
+      self.font = font
+      self.displayAtoms = [any MT.Display]()
+      self.currentPosition = CGPoint.zero
+      self.cramped = cramped
+      self.spaced = spaced
+      self.currentLine = AttributedString()
+      self.currentAtoms = [MTMathAtom]()
+      self.style = style
+      self.currentLineIndexRange = __NSRange(location:Int.max, length:Int.max);
     }
     
     static func preprocessMathList(_ ml:MTMathList?) -> [MTMathAtom] {
@@ -436,353 +521,366 @@ class MTTypesetter {
         return preprocessed
     }
     
-    // returns the size of the font in this style
-    static func getStyleSize(_ style:MTLineStyle, font:MTFont?) -> CGFloat {
-        let original = font!.fontSize
-        switch style {
-            case .display, .text:
-                return original
-            case .script:
-                return original * font!.mathTable!.scriptScaleDown
-            case .scriptOfScript:
-                return original * font!.mathTable!.scriptScriptScaleDown
-        }
+  // returns the size of the font in this style
+  static func getStyleSize(_ style:MTLineStyle, font:MTFont?) -> CGFloat {
+    let original = font!.fontSize
+    switch style {
+    case .display, .text:
+      return original
+    case .script:
+      return original * font!.mathTable!.scriptScaleDown
+    case .scriptOfScript:
+      return original * font!.mathTable!.scriptScriptScaleDown
     }
+  }
     
-    func addInterElementSpace(_ prevNode:MTMathAtom?, currentType type:MTMathAtomType) {
-        var interElementSpace = CGFloat(0)
+  func addInterElementSpace(_ prevNode:MTMathAtom?, currentType type:MTMathAtomType) {
+    var interElementSpace = CGFloat(0)
+    if prevNode != nil {
+      interElementSpace = getInterElementSpace(prevNode!.type, right:type)
+    } else if self.spaced {
+      // For the first atom of a spaced list, treat it as if it is preceded by an open.
+      interElementSpace = getInterElementSpace(.open, right:type)
+    }
+    self.currentPosition.x += interElementSpace
+  }
+    
+  func createDisplayAtoms(_ preprocessed:[MTMathAtom]) {
+    // items should contain all the nodes that need to be layed out.
+    // convert to a list of DisplayAtoms
+    var prevNode:MTMathAtom? = nil
+    var lastType:MTMathAtomType!
+    for atom in preprocessed {
+      switch atom.type {
+      case .number, .variable,. unaryOperator:
+        // These should never appear as they should have been removed by preprocessing
+        assertionFailure("These types should never show here as they are removed by preprocessing.")
+      case .boundary:
+        assertionFailure("A boundary atom should never be inside a mathlist.")
+      case .space:
+        // stash the existing layout
+        if currentLine.characters.count > 0 {
+          self.addDisplayLine()
+        }
+        let space = atom as! MTMathSpace
+        // add the desired space
+        currentPosition.x += space.space * styleFont.mathTable!.muUnit;
+        // Since this is extra space, the desired interelement space between the prevAtom
+        // and the next node is still preserved. To avoid resetting the prevAtom and lastType
+        // we skip to the next node.
+        continue
+      case .style:
+        // stash the existing layout
+        if currentLine.characters.count > 0 {
+          self.addDisplayLine()
+        }
+        let style = atom as! MTMathStyle
+        self.style = style.style
+        // We need to preserve the prevNode for any interelement space changes.
+        // so we skip to the next node.
+        continue
+      case .color:
+        // stash the existing layout
+        if currentLine.characters.count > 0 {
+          self.addDisplayLine()
+        }
+        let colorAtom = atom as! MTMathColor
+        var display = MTTypesetter.createLineForMathList(colorAtom.innerList, font: font, style: style)
+        display!.localTextColor = MTColor(fromHexString: colorAtom.colorString)
+        display!.position = currentPosition
+        currentPosition.x += display!.width
+        displayAtoms.append(display!)
+
+      case .textcolor:
+        // stash the existing layout
+        if currentLine.characters.count > 0 {
+          self.addDisplayLine()
+        }
+        let colorAtom = atom as! MTMathTextColor
+        var display = MTTypesetter.createLineForMathList(colorAtom.innerList, font: font, style: style)
+        display!.localTextColor = MTColor(fromHexString: colorAtom.colorString)
         if prevNode != nil {
-            interElementSpace = getInterElementSpace(prevNode!.type, right:type)
-        } else if self.spaced {
-            // For the first atom of a spaced list, treat it as if it is preceded by an open.
-            interElementSpace = getInterElementSpace(.open, right:type)
+          let subDisplay: MT.Display = display!.subDisplays[0]
+          let subDisplayAtom = (subDisplay as? MT.CTLineDisplay)!.atoms[0]
+          let interElementSpace = self.getInterElementSpace(prevNode!.type, right:subDisplayAtom.type)
+          if currentLine.characters.count > 0 {
+            if interElementSpace > 0 {
+              // add a kerning of that space to the previous character
+              //              currentLine.addAttribute(kCTKernAttributeName as NSAttributedString.Key,
+              //                                                   value:NSNumber(floatLiteral: interElementSpace),
+              //                                                   range:currentLine.mutableString.rangeOfComposedCharacterSequence(at: currentLine.length-1))
+//              currentLine[currentLine.characters.startIndex ... currentLine.characters.endIndex].setAttributes(
+//                FoundationEssentials.AttributeContainer().kerning(interElementSpace)
+//              )
+              let range = currentLine.characters.startIndex ... currentLine.characters.endIndex
+              //currentLine[range].kerning = interElementSpace
+              //currentLine[range].languageIdentifier = "homer"
+              currentLine[range].kerning = Double(interElementSpace)
+            } else {
+              // increase the space
+              currentPosition.x += interElementSpace
+            }
+          }
         }
-        self.currentPosition.x += interElementSpace
-    }
-    
-    func createDisplayAtoms(_ preprocessed:[MTMathAtom]) {
-        // items should contain all the nodes that need to be layed out.
-        // convert to a list of DisplayAtoms
-        var prevNode:MTMathAtom? = nil
-        var lastType:MTMathAtomType!
-        for atom in preprocessed {
-            switch atom.type {
-                case .number, .variable,. unaryOperator:
-                    // These should never appear as they should have been removed by preprocessing
-                    assertionFailure("These types should never show here as they are removed by preprocessing.")
-                    
-                case .boundary:
-                    assertionFailure("A boundary atom should never be inside a mathlist.")
-                    
-                case .space:
-                    // stash the existing layout
-                    if currentLine.length > 0 {
-                        self.addDisplayLine()
-                    }
-                    let space = atom as! MTMathSpace
-                    // add the desired space
-                    currentPosition.x += space.space * styleFont.mathTable!.muUnit;
-                    // Since this is extra space, the desired interelement space between the prevAtom
-                    // and the next node is still preserved. To avoid resetting the prevAtom and lastType
-                    // we skip to the next node.
-                    continue
-                    
-                case .style:
-                    // stash the existing layout
-                    if currentLine.length > 0 {
-                        self.addDisplayLine()
-                    }
-                    let style = atom as! MTMathStyle
-                    self.style = style.style
-                    // We need to preserve the prevNode for any interelement space changes.
-                    // so we skip to the next node.
-                    continue
-                    
-                case .color:
-                    // stash the existing layout
-                    if currentLine.length > 0 {
-                        self.addDisplayLine()
-                    }
-                    let colorAtom = atom as! MTMathColor
-                    var display = MTTypesetter.createLineForMathList(colorAtom.innerList, font: font, style: style)
-                    display!.localTextColor = MTColor(fromHexString: colorAtom.colorString)
-                    display!.position = currentPosition
-                    currentPosition.x += display!.width
-                    displayAtoms.append(display!)
-
-                case .textcolor:
-                    // stash the existing layout
-                    if currentLine.length > 0 {
-                        self.addDisplayLine()
-                    }
-                    let colorAtom = atom as! MTMathTextColor
-                    var display = MTTypesetter.createLineForMathList(colorAtom.innerList, font: font, style: style)
-                    display!.localTextColor = MTColor(fromHexString: colorAtom.colorString)
-
-                    if prevNode != nil {
-                      let subDisplay: MT.Display = display!.subDisplays[0]
-                      let subDisplayAtom = (subDisplay as? MT.CTLineDisplay)!.atoms[0]
-                      let interElementSpace = self.getInterElementSpace(prevNode!.type, right:subDisplayAtom.type)
-                        if currentLine.length > 0 {
-                            if interElementSpace > 0 {
-                                // add a kerning of that space to the previous character
-                                currentLine.addAttribute(kCTKernAttributeName as NSAttributedString.Key,
-                                                         value:NSNumber(floatLiteral: interElementSpace),
-                                                         range:currentLine.mutableString.rangeOfComposedCharacterSequence(at: currentLine.length-1))
-                            }
-                        } else {
-                            // increase the space
-                            currentPosition.x += interElementSpace
-                        }
-                    }
-
-                    display!.position = currentPosition
-                    currentPosition.x += display!.width
-                    displayAtoms.append(display!)
-
-                case .colorBox:
-                    // stash the existing layout
-                    if currentLine.length > 0 {
-                        self.addDisplayLine()
-                    }
-                    let colorboxAtom =  atom as! MTMathColorbox
-                    var display = MTTypesetter.createLineForMathList(colorboxAtom.innerList, font:font, style:style)
-                    
-                    display!.localBackgroundColor = MTColor(fromHexString: colorboxAtom.colorString)
-                    display!.position = currentPosition
-                    currentPosition.x += display!.width;
-                    displayAtoms.append(display!)
-                    
-                case .radical:
-                  // stash the existing layout
-                  if currentLine.length > 0 {
-                      self.addDisplayLine()
-                  }
-                  let rad = atom as! MTRadical
-                  // Radicals are considered as Ord in rule 16.
-                  self.addInterElementSpace(prevNode, currentType:.ordinary)
-                  var displayRad = self.makeRadical(rad)
-                  if rad.degree != nil {
-                      // add the degree to the radical
-                      let degree = MTTypesetter.createLineForMathList(rad.degree, font:font, style:.scriptOfScript)
-                      displayRad!.setDegree(degree, fontMetrics:styleFont.mathTable)
-                  }
-                  currentPosition.x += displayRad!.width
-                  // add super scripts || subscripts
-                  if atom.subScript != nil || atom.superScript != nil {
-                    displayRad = self.makeScripts(atom, display:displayRad, index:UInt(rad.indexRange.location), delta:0) as? MT.RadicalDisplay
-                  }
-                  displayAtoms.append(displayRad!)
-              
-                    
-                    // change type to ordinary
-                    //atom.type = .ordinary;
-                    
-                case .fraction:
-                    // stash the existing layout
-                    if currentLine.length > 0 {
-                        self.addDisplayLine()
-                    }
-                    let frac = atom as! MTFraction?
-                    self.addInterElementSpace(prevNode, currentType:atom.type)
-                    var display = self.makeFraction(frac)
-                    displayAtoms.append(display!)
-                    currentPosition.x += display!.width;
-                    // add super scripts || subscripts
-                    if atom.subScript != nil || atom.superScript != nil {
-                      display = self.makeScripts(atom, display:display, index:UInt(frac!.indexRange.location), delta:0)
-                    }
-                    
-                case .largeOperator:
-                    // stash the existing layout
-                    if currentLine.length > 0 {
-                        self.addDisplayLine()
-                    }
-                    self.addInterElementSpace(prevNode, currentType:atom.type)
-                    let op = atom as! MTLargeOperator?
-                    let display = self.makeLargeOp(op)
-                    displayAtoms.append(display!)
-                    
-                case .inner:
-                    // stash the existing layout
-                    if currentLine.length > 0 {
-                        self.addDisplayLine()
-                    }
-                    self.addInterElementSpace(prevNode, currentType:atom.type)
-                    let inner =  atom as! MTInner?
-              var display:(any MT.Display)?
-                    if inner!.leftBoundary != nil || inner!.rightBoundary != nil {
-                      display = self.makeLeftRight(inner)
-                    } else {
-                      display = MTTypesetter.createLineForMathList(inner!.innerList, font:font, style:style, cramped:cramped)
-                    }
-                    display!.position = currentPosition
-                    currentPosition.x += display!.width
-                    displayAtoms.append(display!)
-                    // add super scripts || subscripts
-                    if atom.subScript != nil || atom.superScript != nil {
-                      display = self.makeScripts(atom, display:display, index:UInt(atom.indexRange.location), delta:0)
-                    }
-                    
-                case .underline:
-                    // stash the existing layout
-                    if currentLine.length > 0 {
-                        self.addDisplayLine()
-                    }
-                    // Underline is considered as Ord in rule 16.
-                    self.addInterElementSpace(prevNode, currentType:.ordinary)
-                    atom.type = .ordinary;
-                    
-                    let under = atom as! MTUnderLine?
-                    var display = self.makeUnderline(under)
-                    displayAtoms.append(display!)
-                    currentPosition.x += display!.width;
-                    // add super scripts || subscripts
-                    if atom.subScript != nil || atom.superScript != nil {
-                      display = self.makeScripts(atom, display:display, index:UInt(atom.indexRange.location), delta:0)
-                    }
-                    
-                case .overline:
-                    // stash the existing layout
-                    if currentLine.length > 0 {
-                        self.addDisplayLine()
-                    }
-                    // Overline is considered as Ord in rule 16.
-                    self.addInterElementSpace(prevNode, currentType:.ordinary)
-                    atom.type = .ordinary;
-                    
-                    let over = atom as! MTOverLine?
-                    var display = self.makeOverline(over)
-                    displayAtoms.append(display!)
-                    currentPosition.x += display!.width;
-                    // add super scripts || subscripts
-                    if atom.subScript != nil || atom.superScript != nil {
-                      display = self.makeScripts(atom, display:display, index:UInt(atom.indexRange.location), delta:0)
-                    }
-                    
-                case .accent:
-                    // stash the existing layout
-                    if currentLine.length > 0 {
-                        self.addDisplayLine()
-                    }
-                    // Accent is considered as Ord in rule 16.
-                    self.addInterElementSpace(prevNode, currentType:.ordinary)
-                    atom.type = .ordinary;
-                    
-                    let accent = atom as! MTAccent?
-                    var display = self.makeAccent(accent)
-                    displayAtoms.append(display!)
-                    currentPosition.x += display!.width;
-                    
-                    // add super scripts || subscripts
-                    if atom.subScript != nil || atom.superScript != nil {
-                      display = self.makeScripts(atom, display:display, index:UInt(atom.indexRange.location), delta:0)
-                    }
-                    
-                case .table:
-                    // stash the existing layout
-                    if currentLine.length > 0 {
-                        self.addDisplayLine()
-                    }
-                    // We will consider tables as inner
-                    self.addInterElementSpace(prevNode, currentType:.inner)
-                    atom.type = .inner;
-                    
-                    let table = atom as! MTMathTable?
-                    let display = self.makeTable(table)
-                    displayAtoms.append(display!)
-                    currentPosition.x += display!.width
-                    // A table doesn't have subscripts or superscripts
-                    
-                case .ordinary, .binaryOperator, .relation, .open, .close, .placeholder, .punctuation:
-                    // the rendering for all the rest is pretty similar
-                    // All we need is render the character and set the interelement space.
-                    if prevNode != nil {
-                        let interElementSpace = self.getInterElementSpace(prevNode!.type, right:atom.type)
-                        if currentLine.length > 0 {
-                            if interElementSpace > 0 {
-                                // add a kerning of that space to the previous character
-                                currentLine.addAttribute(kCTKernAttributeName as NSAttributedString.Key,
-                                                         value:NSNumber(floatLiteral: interElementSpace),
-                                                         range:currentLine.mutableString.rangeOfComposedCharacterSequence(at: currentLine.length-1))
-                            }
-                        } else {
-                            // increase the space
-                            currentPosition.x += interElementSpace
-                        }
-                    }
-                    var current:NSAttributedString? = nil
-                    if atom.type == .placeholder {
-                        let color = MTTypesetter.placeholderColor
-                        current = NSAttributedString(string:atom.nucleus,
-                                                     attributes:[kCTForegroundColorAttributeName as NSAttributedString.Key : color.cgColor])
-                    } else {
-                        current = NSAttributedString(string:atom.nucleus)
-                    }
-                    currentLine.append(current!)
-                    // add the atom to the current range
-                    if currentLineIndexRange.location == NSNotFound {
-                        currentLineIndexRange = atom.indexRange
-                    } else {
-                        currentLineIndexRange.length += atom.indexRange.length
-                    }
-                    // add the fused atoms
-                    if !atom.fusedAtoms.isEmpty {
-                        currentAtoms.append(contentsOf: atom.fusedAtoms)  //.addObjectsFromArray:atom.fusedAtoms)
-                    } else {
-                        currentAtoms.append(atom)
-                    }
-                    
-                    // add super scripts || subscripts
-                    if atom.subScript != nil || atom.superScript != nil {
-                        // stash the existing line
-                        // We don't check currentLine.length here since we want to allow empty lines with super/sub scripts.
-                      var line:(any MT.Display)? = self.addDisplayLine()
-                        var delta = CGFloat(0)
-                        if !atom.nucleus.isEmpty {
-                            // Use the italic correction of the last character.
-                            let index = atom.nucleus.index(before: atom.nucleus.endIndex)
-                            let glyph = self.findGlyphForCharacterAtIndex(index, inString:atom.nucleus)
-                            delta = styleFont.mathTable!.getItalicCorrection(glyph)
-                        }
-                        if delta > 0 && atom.subScript == nil {
-                            // Add a kern of delta
-                            currentPosition.x += delta;
-                        }
-                        line = self.makeScripts(atom, display:line, index:UInt(NSMaxRange(atom.indexRange) - 1), delta:delta)
-                    }
-            } // switch
-            lastType = atom.type
-            prevNode = atom
-        } // node loop
-        if currentLine.length > 0 {
+          
+        display!.position = currentPosition
+        currentPosition.x += display!.width
+        displayAtoms.append(display!)
+      case .colorBox:
+        // stash the existing layout
+        if currentLine.characters.count > 0 {
             self.addDisplayLine()
         }
-        if spaced && lastType != nil {
-            // If spaced then add an interelement space between the last type and close
-            var display = displayAtoms.last
-            let interElementSpace = self.getInterElementSpace(lastType, right:.close)
-            display?.width += interElementSpace
+        let colorboxAtom =  atom as! MTMathColorbox
+        var display = MTTypesetter.createLineForMathList(colorboxAtom.innerList, font:font, style:style)
+        
+        display!.localBackgroundColor = MTColor(fromHexString: colorboxAtom.colorString)
+        display!.position = currentPosition
+        currentPosition.x += display!.width;
+        displayAtoms.append(display!)
+                  
+      case .radical:
+        // stash the existing layout
+        if currentLine.characters.count > 0 {
+          self.addDisplayLine()
         }
+        let rad = atom as! MTRadical
+        // Radicals are considered as Ord in rule 16.
+        self.addInterElementSpace(prevNode, currentType:.ordinary)
+        var displayRad = self.makeRadical(rad)
+        if rad.degree != nil {
+          // add the degree to the radical
+          let degree = MTTypesetter.createLineForMathList(rad.degree, font:font, style:.scriptOfScript)
+          displayRad!.setDegree(degree, fontMetrics:styleFont.mathTable)
+        }
+
+        currentPosition.x += displayRad!.width
+        // add super scripts || subscripts
+        if atom.subScript != nil || atom.superScript != nil {
+          displayRad = self.makeScripts(atom, display:displayRad, index:UInt(rad.indexRange.location), delta:0) as? MT.RadicalDisplay
+        }
+        displayAtoms.append(displayRad!)
+    
+          
+        // change type to ordinary
+        //atom.type = .ordinary;
+          
+      case .fraction:
+        // stash the existing layout
+        if currentLine.characters.count > 0 {
+          self.addDisplayLine()
+        }
+        let frac = atom as! MTFraction?
+        self.addInterElementSpace(prevNode, currentType:atom.type)
+        var display = self.makeFraction(frac)
+        displayAtoms.append(display!)
+        currentPosition.x += display!.width;
+        // add super scripts || subscripts
+        if atom.subScript != nil || atom.superScript != nil {
+          display = self.makeScripts(atom, display:display, index:UInt(frac!.indexRange.location), delta:0)
+        }
+                
+      case .largeOperator:
+        // stash the existing layout
+        if currentLine.characters.count > 0 {
+          self.addDisplayLine()
+        }
+        self.addInterElementSpace(prevNode, currentType:atom.type)
+        let op = atom as! MTLargeOperator?
+        let display = self.makeLargeOp(op)
+        displayAtoms.append(display!)
+                  
+      case .inner:
+        // stash the existing layout
+        if currentLine.characters.count > 0 {
+            self.addDisplayLine()
+        }
+        self.addInterElementSpace(prevNode, currentType:atom.type)
+        let inner =  atom as! MTInner?
+        var display:(any MT.Display)?
+        if inner!.leftBoundary != nil || inner!.rightBoundary != nil {
+          display = self.makeLeftRight(inner)
+        } else {
+          display = MTTypesetter.createLineForMathList(inner!.innerList, font:font, style:style, cramped:cramped)
+        }
+        display!.position = currentPosition
+        currentPosition.x += display!.width
+        displayAtoms.append(display!)
+        // add super scripts || subscripts
+        if atom.subScript != nil || atom.superScript != nil {
+          display = self.makeScripts(atom, display:display, index:UInt(atom.indexRange.location), delta:0)
+        }
+                  
+      case .underline:
+        // stash the existing layout
+        if currentLine.characters.count > 0 {
+          self.addDisplayLine()
+        }
+        // Underline is considered as Ord in rule 16.
+        self.addInterElementSpace(prevNode, currentType:.ordinary)
+        atom.type = .ordinary;
+        
+        let under = atom as! MTUnderLine?
+        var display = self.makeUnderline(under)
+        displayAtoms.append(display!)
+        currentPosition.x += display!.width;
+        // add super scripts || subscripts
+        if atom.subScript != nil || atom.superScript != nil {
+          display = self.makeScripts(atom, display:display, index:UInt(atom.indexRange.location), delta:0)
+        }
+                  
+      case .overline:
+        // stash the existing layout
+        if currentLine.characters.count > 0 {
+          self.addDisplayLine()
+        }
+        // Overline is considered as Ord in rule 16.
+        self.addInterElementSpace(prevNode, currentType:.ordinary)
+        atom.type = .ordinary;
+        
+        let over = atom as! MTOverLine?
+        var display = self.makeOverline(over)
+        displayAtoms.append(display!)
+        currentPosition.x += display!.width;
+        // add super scripts || subscripts
+        if atom.subScript != nil || atom.superScript != nil {
+          display = self.makeScripts(atom, display:display, index:UInt(atom.indexRange.location), delta:0)
+        }
+                  
+      case .accent:
+        // stash the existing layout
+        if currentLine.characters.count > 0 {
+          self.addDisplayLine()
+        }
+        // Accent is considered as Ord in rule 16.
+        self.addInterElementSpace(prevNode, currentType:.ordinary)
+        atom.type = .ordinary;
+        
+        let accent = atom as! MTAccent?
+        var display = self.makeAccent(accent)
+        displayAtoms.append(display!)
+        currentPosition.x += display!.width;
+        
+        // add super scripts || subscripts
+        if atom.subScript != nil || atom.superScript != nil {
+          display = self.makeScripts(atom, display:display, index:UInt(atom.indexRange.location), delta:0)
+        }
+                  
+      case .table:
+        // stash the existing layout
+        if currentLine.characters.count > 0 {
+          self.addDisplayLine()
+        }
+        // We will consider tables as inner
+        self.addInterElementSpace(prevNode, currentType:.inner)
+        atom.type = .inner;
+        
+        let table = atom as! MTMathTable?
+        let display = self.makeTable(table)
+        displayAtoms.append(display!)
+        currentPosition.x += display!.width
+        // A table doesn't have subscripts or superscripts
+                  
+      case .ordinary, .binaryOperator, .relation, .open, .close, .placeholder, .punctuation:
+        // the rendering for all the rest is pretty similar
+        // All we need is render the character and set the interelement space.
+        if prevNode != nil {
+          let interElementSpace = self.getInterElementSpace(prevNode!.type, right:atom.type)
+          if currentLine.characters.count > 0 {
+            if interElementSpace > 0 {
+                // add a kerning of that space to the previous character
+//                currentLine.addAttribute(kCTKernAttributeName as NSAttributedString.Key,
+//                                         value:NSNumber(floatLiteral: interElementSpace),
+//                                         range:currentLine.mutableString.rangeOfComposedCharacterSequence(at: currentLine.length-1))
+            }
+          } else {
+            // increase the space
+            currentPosition.x += interElementSpace
+          }
+        }
+        var current:FoundationEssentials.AttributedString? = nil
+        if atom.type == .placeholder {
+          let color = MTTypesetter.placeholderColor
+          current = AttributedString(atom.nucleus,
+                                     attributes:FoundationEssentials.AttributeContainer().foregroundColor(color.cgColor))
+        } else {
+          current = AttributedString(atom.nucleus)
+        }
+        currentLine.append(current!)
+        // add the atom to the current range
+        if currentLineIndexRange.location == NSNotFound {
+            currentLineIndexRange = atom.indexRange
+        } else {
+            currentLineIndexRange.length += atom.indexRange.length
+        }
+        // add the fused atoms
+        if !atom.fusedAtoms.isEmpty {
+            currentAtoms.append(contentsOf: atom.fusedAtoms)  //.addObjectsFromArray:atom.fusedAtoms)
+        } else {
+            currentAtoms.append(atom)
+        }
+          
+        // add super scripts || subscripts
+        if atom.subScript != nil || atom.superScript != nil {
+            // stash the existing line
+            // We don't check currentLine.length here since we want to allow empty lines with super/sub scripts.
+          var line:(any MT.Display)? = self.addDisplayLine()
+          var delta = CGFloat(0)
+          if !atom.nucleus.isEmpty {
+            // Use the italic correction of the last character.
+            let index = atom.nucleus.index(before: atom.nucleus.endIndex)
+            let glyph = self.findGlyphForCharacterAtIndex(index, inString:atom.nucleus)
+            delta = styleFont.mathTable!.getItalicCorrection(glyph)
+          }
+          if delta > 0 && atom.subScript == nil {
+            // Add a kern of delta
+            currentPosition.x += delta;
+          }
+          line = self.makeScripts(atom, display:line, index:UInt(atom.indexRange.upperLimit - 1), delta:delta)
+        }
+      default:
+        assertionFailure("Unsupported case: \(atom.type)")
+
+      } // switch
+      lastType = atom.type
+      prevNode = atom
+    } // node loop
+    
+    if currentLine.characters.count > 0 {
+        self.addDisplayLine()
     }
+    
+    if spaced && lastType != nil {
+      // If spaced then add an interelement space between the last type and close
+      var display = displayAtoms.last
+      let interElementSpace = self.getInterElementSpace(lastType, right:.close)
+      display?.width += interElementSpace
+    }
+  }
     
     @discardableResult
     func addDisplayLine() -> MT.CTLineDisplay? {
-        // add the font
-        currentLine.addAttribute(kCTFontAttributeName as NSAttributedString.Key, value:styleFont.ctFont as Any, range:NSMakeRange(0, currentLine.length))
-        /*assert(currentLineIndexRange.length == numCodePoints(currentLine.string),
-         "The length of the current line: %@ does not match the length of the range (%d, %d)",
-         currentLine, currentLineIndexRange.location, currentLineIndexRange.length);*/
-        
-      let displayAtom = MT.CTLineDisplay(withString:currentLine, position:currentPosition, range:currentLineIndexRange, font:styleFont, atoms:currentAtoms)
-        self.displayAtoms.append(displayAtom)
-        // update the position
-        currentPosition.x += displayAtom.width;
-        // clear the string and the range
-        currentLine = NSMutableAttributedString()
-        currentAtoms = [MTMathAtom]()
-        currentLineIndexRange = NSMakeRange(NSNotFound, NSNotFound)
-        return displayAtom
+      // add the font
+      currentLine[currentLine.characters.startIndex...currentLine.characters.endIndex].font = styleFont.ctFont
+
+      /*assert(currentLineIndexRange.length == numCodePoints(currentLine.string),
+       "The length of the current line: %@ does not match the length of the range (%d, %d)",
+       currentLine, currentLineIndexRange.location, currentLineIndexRange.length);*/
+      let displayAtom = MT.CTLineDisplay(
+        withString: currentLine,
+        position:currentPosition,
+        range:currentLineIndexRange,
+        font:styleFont,
+        atoms:currentAtoms
+      )
+      self.displayAtoms.append(displayAtom)
+      // update the position
+      currentPosition.x += displayAtom.width;
+      // clear the string and the range
+      currentLine = AttributedString()
+      currentAtoms = [MTMathAtom]()
+      currentLineIndexRange = __NSRange(location:Int.max, length:Int.max)
+      return displayAtom
     }
     
     // MARK: - Spacing
@@ -1097,10 +1195,10 @@ class MTTypesetter {
         
         if glyphDisplay == nil {
             // No constructed display so use the glyph we got.
-          glyphDisplay = MT.GlyphDisplay(withGlpyh: glyph, range: NSMakeRange(NSNotFound, 0), font:styleFont)
-            glyphDisplay!.ascent = glyphAscent;
-            glyphDisplay!.descent = glyphDescent;
-            glyphDisplay!.width = glyphWidth;
+          glyphDisplay = MT.GlyphDisplay(withGlpyh: glyph, range: __NSRange(location: Int.max, length:0), font:styleFont)
+          glyphDisplay!.ascent = glyphAscent;
+          glyphDisplay!.descent = glyphDescent;
+          glyphDisplay!.width = glyphWidth;
         }
         return glyphDisplay;
     }
@@ -1134,7 +1232,7 @@ class MTTypesetter {
         let shiftUp = radicalAscent - glyph.ascent  // Note: if the font designer followed latex conventions, this is the same as glyphAscent == thickness.
         glyph.shiftDown = -shiftUp
         
-      var radical = MT.RadicalDisplay(withRadicand: innerDisplay, glyph: glyph, position: currentPosition, range: range)
+        var radical = MT.RadicalDisplay(withRadicand: innerDisplay, glyph: glyph, position: currentPosition, range: range)
         radical.ascent = radicalAscent + styleFont.mathTable!.radicalExtraAscender
         radical.topKern = styleFont.mathTable!.radicalExtraAscender
         radical.lineThickness = radicalRuleThickness
@@ -1189,20 +1287,20 @@ class MTTypesetter {
     }
 
     func constructGlyph(_ glyph:CGGlyph, withHeight glyphHeight:CGFloat) -> MT.GlyphConstructionDisplay? {
-        let parts = styleFont.mathTable!.getVerticalGlyphAssembly(forGlyph: glyph)
-        if parts.count == 0 {
-            return nil
-        }
-        var glyphs = [NSNumber](), offsets = [NSNumber]()
-        var height:CGFloat=0
-        self.constructGlyphWithParts(parts, glyphHeight:glyphHeight, glyphs:&glyphs, offsets:&offsets, height:&height)
-        var first = glyphs[0].uint16Value
-        let width = CTFontGetAdvancesForGlyphs(styleFont.ctFont, .horizontal, &first, nil, 1);
+      let parts = styleFont.mathTable!.getVerticalGlyphAssembly(forGlyph: glyph)
+      if parts.count == 0 {
+        return nil
+      }
+      var glyphs = [NSNumber](), offsets = [NSNumber]()
+      var height:CGFloat=0
+      self.constructGlyphWithParts(parts, glyphHeight:glyphHeight, glyphs:&glyphs, offsets:&offsets, height:&height)
+      var first = glyphs[0].uint16Value
+      let width = CTFontGetAdvancesForGlyphs(styleFont.ctFont, .horizontal, &first, nil, 1);
       var display = MT.GlyphConstructionDisplay(withGlyphs: glyphs, offsets: offsets, font: styleFont)
-        display.width = width;
-        display.ascent = height;
-        display.descent = 0;   // it's upto the rendering to adjust the display up or down.
-        return display;
+      display.width = width;
+      display.ascent = height;
+      display.descent = 0;   // it's upto the rendering to adjust the display up or down.
+      return display;
     }
     
     func constructGlyphWithParts(_ parts:[GlyphPart], glyphHeight:CGFloat, glyphs:inout [NSNumber], offsets:inout [NSNumber], height:inout CGFloat) {
@@ -1290,39 +1388,39 @@ class MTTypesetter {
         let limits = op.limits && style == .display
         var delta = CGFloat(0)
         if op.nucleus.count == 1 {
-            var glyph = self.findGlyphForCharacterAtIndex(op.nucleus.startIndex, inString:op.nucleus)
-            if style == .display && glyph != 0 {
-                // Enlarge the character in display style.
-                glyph = styleFont.mathTable!.getLargerGlyph(glyph)
-            }
-            // This is be the italic correction of the character.
-            delta = styleFont.mathTable!.getItalicCorrection(glyph)
+          var glyph = self.findGlyphForCharacterAtIndex(op.nucleus.startIndex, inString:op.nucleus)
+          if style == .display && glyph != 0 {
+            // Enlarge the character in display style.
+            glyph = styleFont.mathTable!.getLargerGlyph(glyph)
+          }
+          // This is be the italic correction of the character.
+          delta = styleFont.mathTable!.getItalicCorrection(glyph)
 
-            // vertically center
-            let bbox = CTFontGetBoundingRectsForGlyphs(styleFont.ctFont, .horizontal, &glyph, nil, 1);
-            let width = CTFontGetAdvancesForGlyphs(styleFont.ctFont, .horizontal, &glyph, nil, 1);
-            var ascent=CGFloat(0), descent=CGFloat(0)
-            getBboxDetails(bbox, ascent: &ascent, descent: &descent)
-            let shiftDown = 0.5*(ascent - descent) - styleFont.mathTable!.axisHeight;
-            var glyphDisplay:any MTDisplayDS = MT.GlyphDisplay(withGlpyh: glyph, range: op.indexRange, font: styleFont)
-            glyphDisplay.ascent = ascent;
-            glyphDisplay.descent = descent;
-            glyphDisplay.width = width;
-            if (op.subScript != nil) && !limits {
-                // Remove italic correction from the width of the glyph if
-                // there is a subscript and limits is not set.
-                glyphDisplay.width -= delta;
-            }
-            glyphDisplay.shiftDown = shiftDown;
-            glyphDisplay.position = currentPosition;
-            return self.addLimitsToDisplay(glyphDisplay, forOperator:op, delta:delta)
+          // vertically center
+          let bbox = CTFontGetBoundingRectsForGlyphs(styleFont.ctFont, .horizontal, &glyph, nil, 1);
+          let width = CTFontGetAdvancesForGlyphs(styleFont.ctFont, .horizontal, &glyph, nil, 1);
+          var ascent=CGFloat(0), descent=CGFloat(0)
+          getBboxDetails(bbox, ascent: &ascent, descent: &descent)
+          let shiftDown = 0.5*(ascent - descent) - styleFont.mathTable!.axisHeight;
+          var glyphDisplay:any MTDisplayDS = MT.GlyphDisplay(withGlpyh: glyph, range: op.indexRange, font: styleFont)
+          glyphDisplay.ascent = ascent;
+          glyphDisplay.descent = descent;
+          glyphDisplay.width = width;
+          if (op.subScript != nil) && !limits {
+            // Remove italic correction from the width of the glyph if
+            // there is a subscript and limits is not set.
+            glyphDisplay.width -= delta;
+          }
+          glyphDisplay.shiftDown = shiftDown;
+          glyphDisplay.position = currentPosition;
+          return self.addLimitsToDisplay(glyphDisplay, forOperator:op, delta:delta)
         } else {
             // Create a regular node
-            let line = NSMutableAttributedString(string: op.nucleus)
+          var line = FoundationEssentials.AttributedString(op.nucleus)
             // add the font
-            line.addAttribute(kCTFontAttributeName as NSAttributedString.Key, value:styleFont.ctFont!, range:NSMakeRange(0, line.length))
+          line[line.characters.startIndex...line.characters.endIndex].font = styleFont.ctFont!
           let displayAtom:any MT.Display = MT.CTLineDisplay(withString: line, position: currentPosition, range: op.indexRange, font: styleFont, atoms: [op])
-            return self.addLimitsToDisplay(displayAtom, forOperator:op, delta:0)
+          return self.addLimitsToDisplay(displayAtom, forOperator:op, delta:0)
         }
     }
     
@@ -1404,27 +1502,28 @@ class MTTypesetter {
     }
     
     func findGlyphForBoundary(_ delimiter:String, withHeight glyphHeight:CGFloat) -> (any MT.Display)? {
-        var glyphAscent=CGFloat(0), glyphDescent=CGFloat(0), glyphWidth=CGFloat(0)
-        let leftGlyph = self.findGlyphForCharacterAtIndex(delimiter.startIndex, inString:delimiter)
-        let glyph = self.findGlyph(leftGlyph, withHeight:glyphHeight, glyphAscent:&glyphAscent, glyphDescent:&glyphDescent, glyphWidth:&glyphWidth)
-        
-        var glyphDisplay:(any MTDisplayDS)?
-        if (glyphAscent + glyphDescent < glyphHeight) {
-            // we didn't find a pre-built glyph that is large enough
-            glyphDisplay = self.constructGlyph(leftGlyph, withHeight:glyphHeight)
-        }
-        
-        if glyphDisplay == nil {
-            // Create a glyph display
-          glyphDisplay = MT.GlyphDisplay(withGlpyh: glyph, range: NSMakeRange(NSNotFound, 0), font:styleFont)
-            glyphDisplay!.ascent = glyphAscent;
-            glyphDisplay!.descent = glyphDescent;
-            glyphDisplay!.width = glyphWidth;
-        }
-        // Center the glyph on the axis
-        let shiftDown = 0.5*(glyphDisplay!.ascent - glyphDisplay!.descent) - styleFont.mathTable!.axisHeight;
-        glyphDisplay!.shiftDown = shiftDown;
-        return glyphDisplay;
+      var glyphAscent=CGFloat(0), glyphDescent=CGFloat(0), glyphWidth=CGFloat(0)
+      let leftGlyph = self.findGlyphForCharacterAtIndex(delimiter.startIndex, inString:delimiter)
+      let glyph = self.findGlyph(leftGlyph, withHeight:glyphHeight, glyphAscent:&glyphAscent, glyphDescent:&glyphDescent, glyphWidth:&glyphWidth)
+      
+      var glyphDisplay:(any MTDisplayDS)?
+      if (glyphAscent + glyphDescent < glyphHeight) {
+        // we didn't find a pre-built glyph that is large enough
+        glyphDisplay = self.constructGlyph(leftGlyph, withHeight:glyphHeight)
+      }
+      
+      if glyphDisplay == nil {
+          // Create a glyph display
+        glyphDisplay = MT.GlyphDisplay(withGlpyh: glyph, range: __NSRange(location:Int.max, length:0), font:styleFont)
+        glyphDisplay!.ascent = glyphAscent;
+        glyphDisplay!.descent = glyphDescent;
+        glyphDisplay!.width = glyphWidth;
+      }
+
+      // Center the glyph on the axis
+      let shiftDown = 0.5*(glyphDisplay!.ascent - glyphDisplay!.descent) - styleFont.mathTable!.axisHeight;
+      glyphDisplay!.shiftDown = shiftDown;
+      return glyphDisplay;
     }
     
     // MARK: - Underline/Overline
@@ -1626,34 +1725,35 @@ class MTTypesetter {
     }
     
     func makeRowWithColumns(_ cols:[any MT.Display], forTable table:MTMathTable?, columnWidths:[CGFloat]) -> MT.MathListDisplay? {
-        var columnStart = CGFloat(0)
-        var rowRange = NSMakeRange(NSNotFound, 0);
-        for i in 0..<cols.count {
-            var col = cols[i]
-            let colWidth = columnWidths[i]
-            let alignment = table?.get(alignmentForColumn: i)
-            var cellPos = columnStart;
-            switch alignment {
-                case .right:
-                    cellPos += colWidth - col.width
-                case .center:
-                    cellPos += (colWidth - col.width) / 2;
-                case .left, .none:
-                    // No changes if left aligned
-                    cellPos += 0  // no op
-            }
-            if (rowRange.location != NSNotFound) {
-                rowRange = NSUnionRange(rowRange, col.range);
-            } else {
-                rowRange = col.range;
-            }
-
-            col.position = CGPointMake(cellPos, 0);
-            columnStart += colWidth + table!.interColumnSpacing * styleFont.mathTable!.muUnit;
+      var columnStart = CGFloat(0)
+      var rowRange = __NSRange(location:NSNotFound, length:0);
+      for i in 0..<cols.count {
+        var col = cols[i]
+        let colWidth = columnWidths[i]
+        let alignment = table?.get(alignmentForColumn: i)
+        var cellPos = columnStart;
+        switch alignment {
+          case .right:
+            cellPos += colWidth - col.width
+          case .center:
+            cellPos += (colWidth - col.width) / 2;
+          case .left, .none:
+            // No changes if left aligned
+            cellPos += 0  // no op
         }
-        // Create a display for the row
-        let rowDisplay = MT.MathListDisplay(withDisplays: cols, range:rowRange)
-        return rowDisplay
+
+        if rowRange.location != NSNotFound {
+          rowRange = rowRange.union(with:col.range)
+        } else {
+          rowRange = col.range
+        }
+
+        col.position = CGPointMake(cellPos, 0);
+        columnStart += colWidth + table!.interColumnSpacing * styleFont.mathTable!.muUnit;
+      }
+      // Create a display for the row
+      let rowDisplay = MT.MathListDisplay(withDisplays: cols, range:rowRange)
+      return rowDisplay
     }
     
     func positionRows(_ rows:inout [any MT.Display], forTable table:MTMathTable?) {

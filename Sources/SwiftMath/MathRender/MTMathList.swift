@@ -184,7 +184,7 @@ public class MTMathAtom: NSObject {
     
     /// The index range in the MTMathList this MTMathAtom tracks. This is used by the finalizing and preprocessing steps
     /// which fuse MTMathAtoms to track the position of the current MTMathAtom in the original list.
-    public var indexRange = NSRange(location: 0, length: 0) // indexRange in list that this atom tracks:
+    public var indexRange = __NSRange(location: 0, length: 0) // indexRange in list that this atom tracks:
     
     /** The font style to be used for the atom. */
     var fontStyle: MTFontStyle = .defaultStyle
@@ -301,7 +301,10 @@ public class MTMathAtom: NSObject {
         self.nucleus += atom.nucleus
         
         // Update range:
-        self.indexRange.length += atom.indexRange.length
+        self.indexRange = __NSRange(
+          location: indexRange.location, 
+          length: indexRange.length + atom.indexRange.length
+        )
         
         // Update super/subscript:
         self.superScript = atom.superScript
@@ -873,6 +876,11 @@ extension MTMathList {
     public var string: String { self.description }
 }
 
+extension NSRange {
+  init(_ range:__NSRange) {
+    self = NSMakeRange(range.location, range.length)
+  }
+}
 /** A representation of a list of math objects.
 
     This list can be constructed directly or built with
@@ -907,9 +915,9 @@ public struct MTMathList {
         for atom in self.atoms {
             let newNode = atom.finalized
             
-            if NSEqualRanges(zeroRange, atom.indexRange) {
-                let index = prevNode == nil ? 0 : prevNode!.indexRange.location + prevNode!.indexRange.length
-                newNode.indexRange = NSMakeRange(index, 1)
+            if NSEqualRanges(zeroRange, NSRange(atom.indexRange)) {
+              let index = prevNode == nil ? 0 : prevNode!.indexRange.location + prevNode!.indexRange.length
+              newNode.indexRange = __NSRange(location:index, length:1)
             }
             
             switch newNode.type {

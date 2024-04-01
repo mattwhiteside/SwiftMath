@@ -6,7 +6,8 @@
 //  MIT license. See the LICENSE file for details.
 //
 
-import Foundation
+import Foundation.NSAttributedString
+import FoundationEssentials
 import QuartzCore
 import CoreText
 import SwiftUI
@@ -27,6 +28,11 @@ import SwiftUI
 )
 public macro AddMTDisplayConformances(_ structSkeletons:String...) = #externalMacro(module: "MattsMacrosImpl", type: "ContextWalkerMacro")
 
+extension NSAttributedString {
+  convenience init(_ attrString:FoundationEssentials.AttributedString) {
+    fatalError()
+  }
+}
 public enum MT {
   @AddMTDisplayConformances(
 """
@@ -35,19 +41,19 @@ public struct CTLineDisplay {
     public var line:CTLine!
     /// The attributed string used to generate the CTLineRef. Note setting this does not reset the dimensions of
     /// the display. So set only when
-    var attributedString:NSAttributedString? {
+    var attributedString:FoundationEssentials.AttributedString? {
         didSet {
-            line = CTLineCreateWithAttributedString(attributedString!)
+            line = CTLineCreateWithAttributedString(NSAttributedString(attributedString!))
         }
     }
     
     /// An array of MTMathAtoms that this CTLine displays. Used for indexing back into the MTMathList
     public fileprivate(set) var atoms = [MTMathAtom]()
     
-    init(withString attrString:NSAttributedString?, position:CGPoint, range:NSRange, font:MTFont?, atoms:[MTMathAtom]) {
+    init(withString attrString:FoundationEssentials.AttributedString?, position:CGPoint, range:__NSRange, font:MTFont?, atoms:[MTMathAtom]) {
         _position = position
         self.attributedString = attrString
-        self.line = CTLineCreateWithAttributedString(attrString!)
+        self.line = CTLineCreateWithAttributedString(NSAttributedString(attrString!))
         _range = range
         self.atoms = atoms
         // We can't use typographic bounds here as the ascent and descent returned are for the font and not for the line.
@@ -62,10 +68,10 @@ public struct CTLineDisplay {
     public var textColor: MTColor? {
         set {
             _textColor = newValue
-            let attrStr = attributedString!.mutableCopy() as! NSMutableAttributedString
-            let foregroundColor = NSAttributedString.Key(kCTForegroundColorAttributeName as String)
-            attrStr.addAttribute(foregroundColor, value:self.textColor!.cgColor, range:NSMakeRange(0, attrStr.length))
-            self.attributedString = attrStr
+            var newAttrStr = attributedString!            
+            let range = newAttrStr.characters.startIndex...newAttrStr.characters.endIndex
+            newAttrStr[range].foregroundColor = self.textColor!.cgColor
+            self.attributedString = newAttrStr
         }
         get { _textColor }
     }
@@ -126,7 +132,7 @@ public struct MathListDisplay {
     /// regular list this is NSNotFound
     public var index: Int = 0
     
-    init(withDisplays displays:[any Display], range:NSRange) {
+    init(withDisplays displays:[any Display], range:__NSRange) {
         self.subDisplays = displays
         self.position = CGPoint.zero
         self.type = .regular
@@ -197,7 +203,7 @@ struct GlyphDisplay : MTDisplayDS {
     var glyph:CGGlyph!
     var font:MTFont?
     public var shiftDown:CGFloat = 0
-    init(withGlpyh glyph:CGGlyph, range:NSRange, font:MTFont?) {
+    init(withGlpyh glyph:CGGlyph, range:__NSRange, font:MTFont?) {
         self.font = font
         self.glyph = glyph
 
@@ -417,7 +423,7 @@ public struct FractionDisplay {
     var linePosition:CGFloat=0
     var lineThickness:CGFloat=0
     
-    init(withNumerator numerator:MT.MathListDisplay?, denominator:MT.MathListDisplay?, position:CGPoint, range:NSRange) {
+    init(withNumerator numerator:MT.MathListDisplay?, denominator:MT.MathListDisplay?, position:CGPoint, range:__NSRange) {
         self.numerator = numerator;
         self.denominator = denominator;
         self.position = position;
@@ -528,7 +534,7 @@ struct RadicalDisplay {
     var topKern:CGFloat=0
     var lineThickness:CGFloat=0
     
-    init(withRadicand radicand:MT.MathListDisplay?, glyph:any Display, position:CGPoint, range:NSRange) {
+    init(withRadicand radicand:MT.MathListDisplay?, glyph:any Display, position:CGPoint, range:__NSRange) {
         self.radicand = radicand
         _radicalGlyph = glyph
         _radicalShift = 0
@@ -618,7 +624,7 @@ struct LineDisplay {
   var lineShiftUp:CGFloat=0
   var lineThickness:CGFloat=0
   
-  init(withInner inner:MT.MathListDisplay?, position:CGPoint, range:NSRange) {
+  init(withInner inner:MT.MathListDisplay?, position:CGPoint, range:__NSRange) {
     self.inner = inner;
     self.position = position;
     self.range = range;
@@ -682,7 +688,7 @@ struct AccentDisplay {
      */
     var accent:GlyphDisplay?
     
-    init(withAccent glyph:GlyphDisplay?, accentee:MathListDisplay?, range:NSRange) {
+    init(withAccent glyph:GlyphDisplay?, accentee:MathListDisplay?, range:__NSRange) {
         self.accent = glyph
         self.accentee = accentee
         self.accentee?.position = CGPoint.zero
@@ -753,7 +759,7 @@ struct AccentDisplay {
     }
     
     /// The range of characters supported by this item
-    var range:NSRange{
+    var range:__NSRange{
       get
       set
     }
