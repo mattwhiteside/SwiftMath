@@ -7,8 +7,7 @@
 //  MIT license. See the LICENSE file for details.
 //
 
-import Foundation
-
+import CoreGraphics
 #if os(macOS)
 
 extension MTBezierPath {

@@ -6,9 +6,8 @@
 //  MIT license. See the LICENSE file for details.
 //
 
-import Foundation
 import CoreText
-
+import Foundation.NSCoder
 /**
  Different display styles supported by the `MTMathUILabel`.
  
