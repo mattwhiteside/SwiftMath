@@ -7,22 +7,18 @@
 //  MIT license. See the LICENSE file for details.
 //
 
-import Foundation
-
 extension MTColor {
     
     public convenience init?(fromHexString hexString:String) {
-        if hexString.isEmpty { return nil }
-        if !hexString.hasPrefix("#") { return nil }
-        
-        var rgbValue = UInt64(0)
-        let scanner = Scanner(string: hexString)
-        scanner.charactersToBeSkipped = CharacterSet(charactersIn: "#")
-        scanner.scanHexInt64(&rgbValue)
-        self.init(red: CGFloat((rgbValue & 0xFF0000) >> 16)/255.0,
-                  green: CGFloat((rgbValue & 0xFF00) >> 8)/255.0,
-                  blue: CGFloat((rgbValue & 0xFF))/255.0,
-                  alpha: 1.0)
+      if hexString.isEmpty { return nil }
+      if !hexString.hasPrefix("#") { return nil }
+      guard let rgbValue = UInt64(hexString.replacingOccurrences(of: "#", with: "")) else {
+        return nil
+      }
+      self.init(red: Float64((rgbValue & 0xFF0000) >> 16)/255.0,
+                green: Float64((rgbValue & 0xFF00) >> 8)/255.0,
+                blue: Float64((rgbValue & 0xFF))/255.0,
+                alpha: 1.0)
     }
     
 }

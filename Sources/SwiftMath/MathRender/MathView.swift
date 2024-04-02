@@ -18,7 +18,7 @@ public struct MathView : View {
   @State private var latex:String
 
   /** This contains any error that occurred when parsing the latex. */
-  @State private var error:NSError?
+  @State private var error:String?
   
   /** If true, if there is an error it displays the error message inline. Default true. */
   @State private var displayErrorInline = true

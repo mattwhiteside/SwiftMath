@@ -6,11 +6,12 @@
 //  MIT license. See the LICENSE file for details.
 //
 
-import Foundation
-
 /** `MTMathListBuilder` is a class for parsing LaTeX into an `MTMathList` that
  can be rendered and processed mathematically.
  */
+
+public typealias _CGFloat = Double
+
 struct MTEnvProperties {
     var envName: String?
     var ended: Bool
@@ -74,7 +75,7 @@ public struct MTMathListBuilder {
     var spacesAllowed:Bool
     
     /** Contains any error that occurred during parsing. */
-    var error:NSError?
+    var error:String?
     
     // MARK: - Character-handling routines
     
@@ -112,7 +113,7 @@ public struct MTMathListBuilder {
         return false
     }
     
-    public static let spaceToCommands: [CGFloat: String] = [
+    public static let spaceToCommands: [_CGFloat: String] = [
         3 : ",",
         4 : ">",
         5 : ";",
@@ -163,7 +164,7 @@ public struct MTMathListBuilder {
      constructing the string, this returns nil. The error is returned in the
      `error` parameter.
      */
-    public static func build(fromString string: String, error:inout NSError?) -> MTMathList? {
+    public static func build(fromString string: String, error:inout String?) -> MTMathList? {
         var builder = MTMathListBuilder(string: string)
         let output = builder.build()
         if builder.error != nil {
@@ -756,10 +757,10 @@ public struct MTMathListBuilder {
     }
 
     mutating func setError(_ code:MTParseErrors, message:String) {
-        // Only record the first error.
-        if error == nil {
-            error = NSError(domain: MTParseError, code: code.rawValue, userInfo: [ NSLocalizedDescriptionKey : message ])
-        }
+      // Only record the first error.
+      if error == nil {
+        error = "ParseError. Code = \(code), message = \(message)"
+      }
     }
     
     mutating func atom(forCommand command: String) -> MTMathAtom? {
@@ -905,11 +906,11 @@ public struct MTMathListBuilder {
             return nil
         }
         
-        var error:NSError? = self.error
+        var error:String? = self.error
         let table = MTMathAtomFactory.table(withEnvironment: currentEnv?.envName, rows: rows, error: &error)
         if table == nil && self.error == nil {
-            self.error = error
-            return nil
+          self.error = error
+          return nil
         }
         self.currentEnv = oldEnv
         return table

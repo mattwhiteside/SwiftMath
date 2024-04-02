@@ -63,29 +63,31 @@ public class MTMathAtomFactory {
     ]
     
     private static let delimValueLock = NSLock()
+  
     static var _delimValueToName = [String: String]()
+  
     public static var delimValueToName: [String: String] {
-        if _delimValueToName.isEmpty {
-            var output = [String: String]()
-            for (key, value) in Self.delimiters {
-                if let existingValue = output[value] {
-                    if key.count > existingValue.count {
-                        continue
-                    } else if key.count == existingValue.count {
-                        if key.compare(existingValue) == .orderedDescending {
-                            continue
-                        }
-                    }
-                }
-                output[value] = key
+      if _delimValueToName.isEmpty {
+        var output = [String: String]()
+        for (key, value) in Self.delimiters {
+          if let existingValue = output[value] {
+            if key.count > existingValue.count {
+              continue
+            } else if key.count == existingValue.count {
+              if key.compare(existingValue) == .orderedDescending {
+                continue
+              }
             }
-            delimValueLock.lock()
-            defer { delimValueLock.unlock() }
-            if _delimValueToName.isEmpty {
-                _delimValueToName = output
-            }
+          }
+          output[value] = key
         }
-        return _delimValueToName
+        delimValueLock.lock()
+        defer { delimValueLock.unlock() }
+        if _delimValueToName.isEmpty {
+          _delimValueToName = output
+        }
+      }
+      return _delimValueToName
     }
     
     public static let accents = [
@@ -717,7 +719,7 @@ public class MTMathAtomFactory {
      @note The reason this function returns a `MTMathAtom` and not a `MTMathTable` is because some
      matrix environments are have builtin delimiters added to the table and hence are returned as inner atoms.
      */
-    public static func table(withEnvironment env: String?, rows: [[MTMathList]], error:inout NSError?) -> MTMathAtom? {
+    public static func table(withEnvironment env: String?, rows: [[MTMathList]], error:inout String?) -> MTMathAtom? {
         let table = MTMathTable(environment: env)
         
         for i in 0..<rows.count {
@@ -758,34 +760,34 @@ public class MTMathAtomFactory {
                     return table
                 }
             } else if env == "eqalign" || env == "split" || env == "aligned" {
-                if table.numColumns != 2 {
-                    let message = "\(env) environment can only have 2 columns"
-                    if error == nil {
-                        error = NSError(domain: MTParseError, code: MTParseErrors.invalidNumColumns.rawValue, userInfo: [NSLocalizedDescriptionKey:message])
-                    }
-                    return nil
+              if table.numColumns != 2 {
+                let message = "\(env) environment can only have 2 columns"
+                if error == nil {
+                  error = "ParseError, code: \(MTParseErrors.invalidNumColumns.rawValue), message: \(message)"
                 }
-                
-                let spacer = MTMathAtom(type: .ordinary, value: "")
-                
-                for i in 0..<table.cells.count {
-                    if table.cells[i].count >= 1 {
-                        table.cells[i][1].insert(spacer, at: 0)
-                    }
+                return nil
+              }
+              
+              let spacer = MTMathAtom(type: .ordinary, value: "")
+              
+              for i in 0..<table.cells.count {
+                if table.cells[i].count >= 1 {
+                  table.cells[i][1].insert(spacer, at: 0)
                 }
-                
-                table.interRowAdditionalSpacing = 1
-                table.interColumnSpacing = 0
-                
-                table.set(alignment: .right, forColumn: 0)
-                table.set(alignment: .left, forColumn: 1)
-                
-                return table
+              }
+              
+              table.interRowAdditionalSpacing = 1
+              table.interColumnSpacing = 0
+              
+              table.set(alignment: .right, forColumn: 0)
+              table.set(alignment: .left, forColumn: 1)
+              
+              return table
             } else if env == "displaylines" || env == "gather" {
                 if table.numColumns != 1 {
                     let message = "\(env) environment can only have 1 column"
                     if error == nil {
-                        error = NSError(domain: MTParseError, code: MTParseErrors.invalidNumColumns.rawValue, userInfo: [NSLocalizedDescriptionKey:message])
+                      error = "ParseError, code: \(MTParseErrors.invalidNumColumns.rawValue), message: \(message)"
                     }
                     return nil
                 }
@@ -800,7 +802,7 @@ public class MTMathAtomFactory {
                 if table.numColumns != 3 {
                     let message = "\(env) environment can only have 3 columns"
                     if error == nil {
-                        error = NSError(domain: MTParseError, code: MTParseErrors.invalidNumColumns.rawValue, userInfo: [NSLocalizedDescriptionKey:message])
+                      error = "ParseError, code: \(MTParseErrors.invalidNumColumns.rawValue), message: \(message)"
                     }
                     return nil
                 }
@@ -817,7 +819,7 @@ public class MTMathAtomFactory {
                 if table.numColumns != 2 {
                     let message = "cases environment can only have 2 columns"
                     if error == nil {
-                        error = NSError(domain: MTParseError, code: MTParseErrors.invalidNumColumns.rawValue, userInfo: [NSLocalizedDescriptionKey:message])
+                      error = "ParseError, code: \(MTParseErrors.invalidNumColumns.rawValue), message: \(message)"
                     }
                     return nil
                 }
@@ -844,9 +846,9 @@ public class MTMathAtomFactory {
                 
                 return inner
             } else {
-                let message = "Unknown environment \(env)"
-                error = NSError(domain: MTParseError, code: MTParseErrors.invalidEnv.rawValue, userInfo: [NSLocalizedDescriptionKey:message])
-                return nil
+              let message = "Unknown environment \(env)"
+              error = "ParseError, code: \(MTParseErrors.invalidEnv.rawValue), message: \(message)"
+              return nil
             }
         }
         return nil

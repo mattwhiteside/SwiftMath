@@ -257,7 +257,7 @@ func getDefaultStyle(_ ch:Character) -> UTF32Char {
     } else {
       fatalError("Illegal character: \(ch) for default style")
     }
-    return ch.utf32Char
+    //return ch.utf32Char
 }
 
 // mathcal/mathscr (caligraphic or script)
@@ -838,8 +838,8 @@ class MTTypesetter {
           }
           line = self.makeScripts(atom, display:line, index:UInt(atom.indexRange.upperLimit - 1), delta:delta)
         }
-      default:
-        assertionFailure("Unsupported case: \(atom.type)")
+//      default:
+//        assertionFailure("Unsupported case: \(atom.type)")
 
       } // switch
       lastType = atom.type

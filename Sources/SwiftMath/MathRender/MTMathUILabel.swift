@@ -77,12 +77,12 @@ public class MTMathUILabel : MTView {
         set {
             _latex = newValue
             _error = nil
-            var error : NSError? = nil
+            var error : String? = nil
             _mathList = MTMathListBuilder.build(fromString: newValue, error: &error)
             if error != nil {
                 _mathList = nil
                 _error = error
-                self.errorLabel?.text = error!.localizedDescription
+                self.errorLabel?.text = error
                 self.errorLabel?.frame = self.bounds
                 self.errorLabel?.isHidden = !self.displayErrorInline
             } else {
@@ -96,8 +96,8 @@ public class MTMathUILabel : MTView {
     private var _latex = ""
     
     /** This contains any error that occurred when parsing the latex. */
-    public var error:NSError? { _error }
-    private var _error:NSError?
+    public var error:String? { _error }
+    private var _error:String?
     
     /** If true, if there is an error it displays the error message inline. Default true. */
     public var displayErrorInline = true
