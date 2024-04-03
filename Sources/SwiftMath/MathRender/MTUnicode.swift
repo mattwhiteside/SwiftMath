@@ -6,7 +6,8 @@
 //  MIT license. See the LICENSE file for details.
 //
 
-import Foundation
+import FoundationEssentials
+typealias UTF32Char = UInt32
 
 public struct UnicodeSymbol {
     static let multiplication              = "\u{00D7}"

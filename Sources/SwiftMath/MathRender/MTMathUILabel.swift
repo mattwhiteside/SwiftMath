@@ -116,12 +116,17 @@ public class MTMathUILabel : MTView {
     /** Convenience method to just set the size of the font without changing the fontface. */
     @IBInspectable
     public var fontSize:CGFloat {
-        set {
-            _fontSize = newValue
-            let font = font?.copy(withSize: newValue)
-            self.font = font  // also forces an update
+      set {
+        _fontSize = newValue
+        do {
+          let font = try font?.copy(withSize: newValue)
+          self.font = font  // also forces an update
         }
-        get { _fontSize }
+        catch let anyError {
+          fatalError("Error: \(anyError)")
+        }
+      }
+      get { _fontSize }
     }
     private var _fontSize:CGFloat=0
     
@@ -238,10 +243,10 @@ public class MTMathUILabel : MTView {
         context.restoreGState()
     }
     
-    func _layoutSubviews() {
+    func _layoutSubviews() throws {
         if _mathList != nil {
             // print("Pre list = \(_mathList!)")
-            _displayList = MTTypesetter.createLineForMathList(_mathList, font: font, style: currentStyle)!
+            _displayList = try MTTypesetter.createLineForMathList(_mathList, font: font, style: currentStyle)!
             _displayList!.textColor = textColor
             // print("Post list = \(_mathList!)")
             var textX = CGFloat(0)
@@ -266,28 +271,58 @@ public class MTMathUILabel : MTView {
         self.setNeedsDisplay()
     }
     
-    func _sizeThatFits(_ size:CGSize) -> CGSize {
+    func _sizeThatFits(_ size:CGSize) throws -> CGSize {
         guard _mathList != nil else { return size }
         var size = size
         //var displayList:MT.MathListDisplay? = nil
-        let displayList = MTTypesetter.createLineForMathList(_mathList, font: font, style: currentStyle)
+        let displayList = try MTTypesetter.createLineForMathList(_mathList, font: font, style: currentStyle)
         size.width = displayList!.width + contentInsets.left + contentInsets.right
         size.height = displayList!.ascent + displayList!.descent + contentInsets.top + contentInsets.bottom
         return size
     }
     
 #if os(macOS)
-    func setNeedsDisplay() { self.needsDisplay = true }
-    func setNeedsLayout() { self.needsLayout = true }
-    public override var fittingSize: CGSize { _sizeThatFits(CGSizeZero) }
-    override public var isFlipped: Bool { false }
-    override public func layout() {
-        self._layoutSubviews()
-        super.layout()
+  func setNeedsDisplay() { self.needsDisplay = true }
+  func setNeedsLayout() { self.needsLayout = true }
+  
+  public override var fittingSize: CGSize {
+    get {
+      do {
+        return try _sizeThatFits(CGSizeZero)
+      }
+      catch let anyError {
+        fatalError("Error: \(anyError)")
+      }
     }
+  }
+  
+  override public var isFlipped: Bool { false }
+  override public func layout()  {
+    do {
+      try self._layoutSubviews()
+      super.layout()
+    }
+    catch let anyError {
+      fatalError("Error: \(anyError)")
+    }
+  }
 #else
-    public override var intrinsicContentSize: CGSize { _sizeThatFits(CGSizeZero) }
-    override public func layoutSubviews() { _layoutSubviews() }
+  public override var intrinsicContentSize: CGSize {
+    do {
+      return try _sizeThatFits(CGSizeZero)
+    }
+    catch let anyError {
+      fatalError("Error: \(anyError)")
+    }
+  }
+  override public func layoutSubviews() {
+    do {
+      try self._layoutSubviews()
+    }
+    catch let anyError {
+      fatalError("Error: \(anyError)")
+    }
+  }
 #endif
     
 }

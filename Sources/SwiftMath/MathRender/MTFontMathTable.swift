@@ -6,24 +6,36 @@
 //  MIT license. See the LICENSE file for details.
 //
 
-import Foundation
+import FoundationEssentials
 import CoreText
 
+struct Error: LocalizedError {
+  let description: String
+
+  init(_ description: String) {
+    self.description = description
+  }
+
+  var errorDescription: String? {
+    description
+  }
+}
+
 struct GlyphPart {
-    /// The glyph that represents this part
-    var glyph: CGGlyph!
+  /// The glyph that represents this part
+  var glyph: CGGlyph!
 
-    /// Full advance width/height for this part, in the direction of the extension in points.
-    var fullAdvance: CGFloat = 0
+  /// Full advance width/height for this part, in the direction of the extension in points.
+  var fullAdvance: CGFloat = 0
 
-    /// Advance width/ height of the straight bar connector material at the beginning of the glyph in points.
-    var startConnectorLength: CGFloat = 0
+  /// Advance width/ height of the straight bar connector material at the beginning of the glyph in points.
+  var startConnectorLength: CGFloat = 0
 
-    /// Advance width/ height of the straight bar connector material at the end of the glyph in points.
-    var endConnectorLength: CGFloat = 0
+  /// Advance width/ height of the straight bar connector material at the end of the glyph in points.
+  var endConnectorLength: CGFloat = 0
 
-    /// If this part is an extender. If set, the part can be skipped or repeated.
-    var isExtender: Bool = false
+  /// If this part is an extender. If set, the part can be skipped or repeated.
+  var isExtender: Bool = false
 }
 
 /** This class represents the Math table of an open type font.
@@ -42,103 +54,102 @@ struct GlyphPart {
  */
 class MTFontMathTable {
     
-    // The font for this math table.
-    public private(set) weak var font:MTFont? // @property (nonatomic, readonly, weak) MTFont* font;
-    
-    var _unitsPerEm: UInt
-    var _fontSize: CGFloat
-    var _mathTable: NSDictionary!
-    
-    let kConstants = "constants"
-    
-    /** MU unit in points */
-    var muUnit:CGFloat { _fontSize/18 }
-    
-    func fontUnitsToPt(_ fontUnits:Int) -> CGFloat {
-        CGFloat(fontUnits) * _fontSize / CGFloat(_unitsPerEm)
-    }
-    
-    init(withFont font: MTFont?, mathTable:NSDictionary) {
-        assert(font != nil, "font has nil value")
-        assert(font!.ctFont != nil, "font.ctFont has nil value")
-        self.font = font
-        // do domething with font
-        _unitsPerEm = UInt(CTFontGetUnitsPerEm(font!.ctFont))
-        _fontSize = font!.fontSize;
-        _mathTable = mathTable
-        let version = _mathTable["version"] as! String
-        if version != "1.3" {
-            NSException(name: NSExceptionName.internalInconsistencyException, reason: "Invalid version of math table plist: \(version)").raise()
-        }
-    }
-    
-    func constantFromTable(_ constName:String) -> CGFloat {
-        let consts = _mathTable[kConstants] as! NSDictionary?
-        let val = consts![constName] as! NSNumber?
-        return fontUnitsToPt(val!.intValue)
-    }
-    
-    func percentFromTable(_ percentName:String) -> CGFloat {
-        let consts = _mathTable[kConstants] as! NSDictionary?
-        let val = consts![percentName] as! NSNumber?
-        return CGFloat(val!.floatValue) / 100
-    }
-    
-    /// Math Font Metrics from the opentype specification
-    // MARK: - Fractions
-    var fractionNumeratorDisplayStyleShiftUp:CGFloat { constantFromTable("FractionNumeratorDisplayStyleShiftUp") }          // \sigma_8 in TeX
-    var fractionNumeratorShiftUp:CGFloat { constantFromTable("FractionNumeratorShiftUp") }                      // \sigma_9 in TeX
-    var fractionDenominatorDisplayStyleShiftDown:CGFloat { constantFromTable("FractionDenominatorDisplayStyleShiftDown") }      // \sigma_11 in TeX
-    var fractionDenominatorShiftDown:CGFloat { constantFromTable("FractionDenominatorShiftDown") }                  // \sigma_12 in TeX
-    var fractionNumeratorDisplayStyleGapMin:CGFloat { constantFromTable("FractionNumDisplayStyleGapMin") }           // 3 * \xi_8 in TeX
-    var fractionNumeratorGapMin:CGFloat { constantFromTable("FractionNumeratorGapMin") }                       // \xi_8 in TeX
-    var fractionDenominatorDisplayStyleGapMin:CGFloat { constantFromTable("FractionDenomDisplayStyleGapMin") }         // 3 * \xi_8 in TeX
-    var fractionDenominatorGapMin:CGFloat { constantFromTable("FractionDenominatorGapMin") }                     // \xi_8 in TeX
-    var fractionRuleThickness:CGFloat { constantFromTable("FractionRuleThickness") }                         // \xi_8 in TeX
-    var skewedFractionHorizonalGap:CGFloat { constantFromTable("SkewedFractionHorizontalGap") }             // \sigma_20 in TeX
-    var skewedFractionVerticalGap:CGFloat { constantFromTable("SkewedFractionVerticalGap") }                         // \sigma_21 in TeX
-    
-    // MARK: - Non-standard
-    /// FractionDelimiterSize and FractionDelimiterDisplayStyleSize are not constants
-    /// specified in the OpenType Math specification. Rather these are proposed LuaTeX extensions
-    /// for the TeX parameters \sigma_20 (delim1) and \sigma_21 (delim2). Since these do not
-    /// exist in the fonts that we have, we use the same approach as LuaTeX and use the fontSize
-    /// to determine these values. The constants used are the same as LuaTeX and KaTeX and match the
-    /// metrics values of the original TeX fonts.
-    /// Note: An alternative approach is to use DelimitedSubFormulaMinHeight for \sigma21 and use a factor
-    /// of 2 to get \sigma 20 as proposed in Vieth paper.
-    /// The XeTeX implementation sets \sigma21 = fontSize and \sigma20 = DelimitedSubFormulaMinHeight which
-    /// will produce smaller delimiters.
-    /// Of all the approaches we've implemented LuaTeX's approach since it mimics LaTeX most accurately.
-    var fractionDelimiterSize: CGFloat { 1.01 * _fontSize }
-    
-    /// Modified constant from 2.4 to 2.39, it matches KaTeX and looks better.
-    var fractionDelimiterDisplayStyleSize: CGFloat { 2.39 * _fontSize }
+  // The font for this math table.
+  public private(set) weak var font:MTFont? // @property (nonatomic, readonly, weak) MTFont* font;
+  
+  var _unitsPerEm: UInt
+  var _fontSize: CGFloat
+  var _mathTable = Dictionary<String, Any>()
+  
+  let kConstants = "constants"
+  
+  /** MU unit in points */
+  var muUnit:CGFloat { _fontSize/18 }
+  
+  func fontUnitsToPt(_ fontUnits:Int) -> CGFloat {
+      CGFloat(fontUnits) * _fontSize / CGFloat(_unitsPerEm)
+  }
+  
+  init(withFont font: MTFont?, mathTable:Dictionary<String, Any>) throws {
+      assert(font != nil, "font has nil value")
+      assert(font!.ctFont != nil, "font.ctFont has nil value")
+      self.font = font
+      // do domething with font
+      _unitsPerEm = UInt(CTFontGetUnitsPerEm(font!.ctFont))
+      _fontSize = font!.fontSize;
+      _mathTable = mathTable
+      let version = _mathTable["version"] as! String
+      if version != "1.3" {
+        throw Error("Invalid version of math table plist: \(version)")
+      }
+  }
+  
+  func constantFromTable(_ constName:String) -> CGFloat {
+      let consts = _mathTable[kConstants] as! Dictionary<String, Any>?
+      let val = consts![constName] as! Int?
+      return fontUnitsToPt(val!)
+  }
+  
+  func percentFromTable(_ percentName:String) -> CGFloat {
+      let consts = _mathTable[kConstants] as! Dictionary<String, Any>
+      let val = consts[percentName] as! Float
+      return CGFloat(val) / 100
+  }
+  
+  /// Math Font Metrics from the opentype specification
+  // MARK: - Fractions
+  var fractionNumeratorDisplayStyleShiftUp:CGFloat { constantFromTable("FractionNumeratorDisplayStyleShiftUp") }          // \sigma_8 in TeX
+  var fractionNumeratorShiftUp:CGFloat { constantFromTable("FractionNumeratorShiftUp") }                      // \sigma_9 in TeX
+  var fractionDenominatorDisplayStyleShiftDown:CGFloat { constantFromTable("FractionDenominatorDisplayStyleShiftDown") }      // \sigma_11 in TeX
+  var fractionDenominatorShiftDown:CGFloat { constantFromTable("FractionDenominatorShiftDown") }                  // \sigma_12 in TeX
+  var fractionNumeratorDisplayStyleGapMin:CGFloat { constantFromTable("FractionNumDisplayStyleGapMin") }           // 3 * \xi_8 in TeX
+  var fractionNumeratorGapMin:CGFloat { constantFromTable("FractionNumeratorGapMin") }                       // \xi_8 in TeX
+  var fractionDenominatorDisplayStyleGapMin:CGFloat { constantFromTable("FractionDenomDisplayStyleGapMin") }         // 3 * \xi_8 in TeX
+  var fractionDenominatorGapMin:CGFloat { constantFromTable("FractionDenominatorGapMin") }                     // \xi_8 in TeX
+  var fractionRuleThickness:CGFloat { constantFromTable("FractionRuleThickness") }                         // \xi_8 in TeX
+  var skewedFractionHorizonalGap:CGFloat { constantFromTable("SkewedFractionHorizontalGap") }             // \sigma_20 in TeX
+  var skewedFractionVerticalGap:CGFloat { constantFromTable("SkewedFractionVerticalGap") }                         // \sigma_21 in TeX
+  
+  // MARK: - Non-standard
+  /// FractionDelimiterSize and FractionDelimiterDisplayStyleSize are not constants
+  /// specified in the OpenType Math specification. Rather these are proposed LuaTeX extensions
+  /// for the TeX parameters \sigma_20 (delim1) and \sigma_21 (delim2). Since these do not
+  /// exist in the fonts that we have, we use the same approach as LuaTeX and use the fontSize
+  /// to determine these values. The constants used are the same as LuaTeX and KaTeX and match the
+  /// metrics values of the original TeX fonts.
+  /// Note: An alternative approach is to use DelimitedSubFormulaMinHeight for \sigma21 and use a factor
+  /// of 2 to get \sigma 20 as proposed in Vieth paper.
+  /// The XeTeX implementation sets \sigma21 = fontSize and \sigma20 = DelimitedSubFormulaMinHeight which
+  /// will produce smaller delimiters.
+  /// Of all the approaches we've implemented LuaTeX's approach since it mimics LaTeX most accurately.
+  var fractionDelimiterSize: CGFloat { 1.01 * _fontSize }
+  
+  /// Modified constant from 2.4 to 2.39, it matches KaTeX and looks better.
+  var fractionDelimiterDisplayStyleSize: CGFloat { 2.39 * _fontSize }
 
-    // MARK: - Stacks
-    var stackTopDisplayStyleShiftUp:CGFloat { constantFromTable("StackTopDisplayStyleShiftUp")  }                   // \sigma_8 in TeX
-    var stackTopShiftUp:CGFloat { constantFromTable("StackTopShiftUp")  }                               // \sigma_10 in TeX
-    var stackDisplayStyleGapMin:CGFloat { constantFromTable("StackDisplayStyleGapMin")  }                       // 7 \xi_8 in TeX
-    var stackGapMin:CGFloat { constantFromTable("StackGapMin")  }                                   // 3 \xi_8 in TeX
-    var stackBottomDisplayStyleShiftDown:CGFloat { constantFromTable("StackBottomDisplayStyleShiftDown")  }              // \sigma_11 in TeX
-    var stackBottomShiftDown:CGFloat { constantFromTable("StackBottomShiftDown")  } // \sigma_12 in TeX
+  // MARK: - Stacks
+  var stackTopDisplayStyleShiftUp:CGFloat { constantFromTable("StackTopDisplayStyleShiftUp")  }                   // \sigma_8 in TeX
+  var stackTopShiftUp:CGFloat { constantFromTable("StackTopShiftUp")  }                               // \sigma_10 in TeX
+  var stackDisplayStyleGapMin:CGFloat { constantFromTable("StackDisplayStyleGapMin")  }                       // 7 \xi_8 in TeX
+  var stackGapMin:CGFloat { constantFromTable("StackGapMin")  }                                   // 3 \xi_8 in TeX
+  var stackBottomDisplayStyleShiftDown:CGFloat { constantFromTable("StackBottomDisplayStyleShiftDown")  }              // \sigma_11 in TeX
+  var stackBottomShiftDown:CGFloat { constantFromTable("StackBottomShiftDown")  } // \sigma_12 in TeX
 
-   var stretchStackBottomShiftDown:CGFloat { constantFromTable("StretchStackBottomShiftDown") }
-   var stretchStackGapAboveMin:CGFloat { constantFromTable("StretchStackGapAboveMin") }
-   var stretchStackGapBelowMin:CGFloat { constantFromTable("StretchStackGapBelowMin") }
-   var stretchStackTopShiftUp:CGFloat { constantFromTable("StretchStackTopShiftUp") }
+  var stretchStackBottomShiftDown:CGFloat { constantFromTable("StretchStackBottomShiftDown") }
+  var stretchStackGapAboveMin:CGFloat { constantFromTable("StretchStackGapAboveMin") }
+  var stretchStackGapBelowMin:CGFloat { constantFromTable("StretchStackGapBelowMin") }
+  var stretchStackTopShiftUp:CGFloat { constantFromTable("StretchStackTopShiftUp") }
     
-    // MARK: - super/sub scripts
-
-    var superscriptShiftUp:CGFloat { constantFromTable("SuperscriptShiftUp")  }                            // \sigma_13, \sigma_14 in TeX
-    var superscriptShiftUpCramped:CGFloat { constantFromTable("SuperscriptShiftUpCramped")  }                     // \sigma_15 in TeX
-    var subscriptShiftDown:CGFloat { constantFromTable("SubscriptShiftDown")  }                            // \sigma_16, \sigma_17 in TeX
-    var superscriptBaselineDropMax:CGFloat { constantFromTable("SuperscriptBaselineDropMax")  }                    // \sigma_18 in TeX
-    var subscriptBaselineDropMin:CGFloat { constantFromTable("SubscriptBaselineDropMin")  }                      // \sigma_19 in TeX
-    var superscriptBottomMin:CGFloat { constantFromTable("SuperscriptBottomMin")  }                          // 1/4 \sigma_5 in TeX
-    var subscriptTopMax:CGFloat { constantFromTable("SubscriptTopMax")  }                               // 4/5 \sigma_5 in TeX
-    var subSuperscriptGapMin:CGFloat { constantFromTable("SubSuperscriptGapMin")  }                          // 4 \xi_8 in TeX
-    var superscriptBottomMaxWithSubscript:CGFloat { constantFromTable("SuperscriptBottomMaxWithSubscript")  }             // 4/5 \sigma_5 in TeX
+  // MARK: - super/sub scripts
+  var superscriptShiftUp:CGFloat { constantFromTable("SuperscriptShiftUp")  }                            // \sigma_13, \sigma_14 in TeX
+  var superscriptShiftUpCramped:CGFloat { constantFromTable("SuperscriptShiftUpCramped")  }                     // \sigma_15 in TeX
+  var subscriptShiftDown:CGFloat { constantFromTable("SubscriptShiftDown")  }                            // \sigma_16, \sigma_17 in TeX
+  var superscriptBaselineDropMax:CGFloat { constantFromTable("SuperscriptBaselineDropMax")  }                    // \sigma_18 in TeX
+  var subscriptBaselineDropMin:CGFloat { constantFromTable("SubscriptBaselineDropMin")  }                      // \sigma_19 in TeX
+  var superscriptBottomMin:CGFloat { constantFromTable("SuperscriptBottomMin")  }                          // 1/4 \sigma_5 in TeX
+  var subscriptTopMax:CGFloat { constantFromTable("SubscriptTopMax")  }                               // 4/5 \sigma_5 in TeX
+  var subSuperscriptGapMin:CGFloat { constantFromTable("SubSuperscriptGapMin")  }                          // 4 \xi_8 in TeX
+  var superscriptBottomMaxWithSubscript:CGFloat { constantFromTable("SuperscriptBottomMaxWithSubscript")  }             // 4/5 \sigma_5 in TeX
 
     var spaceAfterScript:CGFloat { constantFromTable("SpaceAfterScript")  }
 
@@ -188,57 +199,50 @@ class MTFontMathTable {
 
     /** Returns an Array of all the vertical variants of the glyph if any. If
      there are no variants for the glyph, the array contains the given glyph. */
-    func getVerticalVariantsForGlyph( _ glyph:CGGlyph) -> [NSNumber?] {
-        let variants = _mathTable[kVertVariants] as! NSDictionary?
-        return self.getVariantsForGlyph(glyph, inDictionary: variants!)
+    func getVerticalVariantsForGlyph( _ glyph:CGGlyph) -> [CGGlyph] {
+      let variants = _mathTable[kVertVariants] as! [String:Any]
+      return self.getVariantsForGlyph(glyph, in: variants)
     }
 
     /** Returns an Array of all the horizontal variants of the glyph if any. If
      there are no variants for the glyph, the array contains the given glyph. */
-    func getHorizontalVariantsForGlyph( _ glyph:CGGlyph) -> [NSNumber?] {
-        let variants = _mathTable[kHorizVariants] as! NSDictionary
-        return self.getVariantsForGlyph(glyph, inDictionary:variants)
+    func getHorizontalVariantsForGlyph( _ glyph:CGGlyph) -> [CGGlyph] {
+      let variants = _mathTable[kHorizVariants] as! [String:Any]
+      return self.getVariantsForGlyph(glyph, in:variants)
     }
     
-    func getVariantsForGlyph(_ glyph: CGGlyph, inDictionary variants:NSDictionary) -> [NSNumber?] {
-        let glyphName = self.font!.get(nameForGlyph: glyph)
-        let variantGlyphs = variants[glyphName] as! NSArray?
-        var glyphArray = [NSNumber]()
-        if variantGlyphs == nil || variantGlyphs?.count == 0 {
-            // There are no extra variants, so just add the current glyph to it.
-            let glyph = self.font!.get(glyphWithName: glyphName)
-            glyphArray.append(NSNumber(value:glyph))
-            return glyphArray
-        }
-        for gvn in variantGlyphs! {
-            let glyphVariantName = gvn as! String?
-            let variantGlyph = self.font?.get(glyphWithName: glyphVariantName!)
-            glyphArray.append(NSNumber(value:variantGlyph!))
-        }
-        return glyphArray
+    func getVariantsForGlyph(_ glyph: CGGlyph, in variants:Dictionary<String, Any>) -> [CGGlyph] {
+      let glyphName = self.font!.get(nameForGlyph: glyph)
+      guard let variantGlyphs = variants[glyphName] as? Array<String>, variantGlyphs.count > 0 else {
+        // There are no extra variants, so just add the current glyph to it.
+        let glyph = self.font!.get(glyphWithName: glyphName)
+        return [glyph]
+      }
+
+      return variantGlyphs.map{
+        self.font!.get(glyphWithName: $0)
+      }
     }
 
     /** Returns a larger vertical variant of the given glyph if any.
      If there is no larger version, this returns the current glyph.
      */
     func getLargerGlyph(_ glyph:CGGlyph) -> CGGlyph {
-        let variants = _mathTable[kVertVariants] as! NSDictionary?
-        let glyphName = self.font?.get(nameForGlyph: glyph)
-        let variantGlyphs = variants![glyphName!] as! NSArray?
-        if variantGlyphs == nil || variantGlyphs?.count == 0 {
-            // There are no extra variants, so just returnt the current glyph.
-            return glyph
+      let variants = _mathTable[kVertVariants] as! Dictionary<String, Array<String>>
+      let glyphName = self.font?.get(nameForGlyph: glyph)
+      guard let variantGlyphs = variants[glyphName!], variantGlyphs.count > 0 else {
+        return glyph
+      }
+      
+      // Find the first variant with a different name.
+      for gvn in variantGlyphs {
+        if gvn != glyphName {
+          let variantGlyph = self.font?.get(glyphWithName: gvn)
+          return variantGlyph!
         }
-        // Find the first variant with a different name.
-        for gvn in variantGlyphs! {
-            let glyphVariantName = gvn as! String?
-            if glyphVariantName != glyphName {
-                let variantGlyph = self.font?.get(glyphWithName: glyphVariantName!)
-                return variantGlyph!
-            }
-        }
-        // We did not find any variants of this glyph so return it.
-        return glyph;
+      }
+      // We did not find any variants of this glyph so return it.
+      return glyph
     }
 
     // MARK: - Italic Correction
@@ -248,11 +252,10 @@ class MTFontMathTable {
     /** Returns the italic correction for the given glyph if any. If there
      isn't any this returns 0. */
     func getItalicCorrection(_ glyph: CGGlyph) -> CGFloat {
-        let italics = _mathTable[kItalic] as! NSDictionary?
-        let glyphName = self.font?.get(nameForGlyph: glyph)
-        let val = italics![glyphName!] as! NSNumber?
-        // if val is nil, this returns 0.
-        return self.fontUnitsToPt(val?.intValue ?? 0)
+      let italics = _mathTable[kItalic] as! Dictionary<String, CGGlyph>
+      let glyphName = self.font?.get(nameForGlyph: glyph)
+      let val = italics[glyphName!]
+      return self.fontUnitsToPt(Int(val ?? 0))
     }
 
     // MARK: - Accents
@@ -262,18 +265,19 @@ class MTFontMathTable {
     /** Returns the adjustment to the top accent for the given glyph if any.
      If there isn't any this returns -1. */
     func getTopAccentAdjustment(_ glyph: CGGlyph) -> CGFloat {
+      let glyphName = self.font?.get(nameForGlyph: glyph)
+      if let accents = _mathTable[kAccents] as? Dictionary<String, CGGlyph>,
+         let val = accents[glyphName!] 
+      {
+        return self.fontUnitsToPt(Int(val))
+      } 
+      else {
         var glyph = glyph
-        let accents = _mathTable[kAccents] as! NSDictionary?
-        let glyphName = self.font?.get(nameForGlyph: glyph)
-        let val = accents![glyphName!] as! NSNumber?
-        if let val = val {
-            return self.fontUnitsToPt(val.intValue)
-        } else {
-            // If no top accent is defined then it is the center of the advance width.
-            var advances = CGSize.zero
-            CTFontGetAdvancesForGlyphs(self.font!.ctFont, .horizontal, &glyph, &advances, 1)
-            return advances.width/2
-        }
+        // If no top accent is defined then it is the center of the advance width.
+        var advances = CGSize.zero
+        CTFontGetAdvancesForGlyphs(self.font!.ctFont, .horizontal, &glyph, &advances, 1)
+        return advances.width/2
+      }
     }
 
     // MARK: - Glyph Construction
@@ -284,39 +288,34 @@ class MTFontMathTable {
     let kVertAssembly = "v_assembly"
     let kAssemblyParts = "parts"
 
-    /** Returns an array of the glyph parts to be used for constructing vertical variants
-     of this glyph. If there is no glyph assembly defined, returns an empty array. */
-    func getVerticalGlyphAssembly(forGlyph glyph:CGGlyph) -> [GlyphPart] {
-        let assemblyTable = _mathTable[kVertAssembly] as! NSDictionary?
-        let glyphName = self.font?.get(nameForGlyph: glyph)
-        let assemblyInfo = assemblyTable![glyphName!] as! NSDictionary?
-        if assemblyInfo == nil {
-            // No vertical assembly defined for glyph
-            return []
-        }
-        let parts = assemblyInfo![kAssemblyParts] as! NSArray?
-        if parts == nil {
-            // parts should always have been defined, but if it isn't return nil
-            return []
-        }
-        var rv = [GlyphPart]()
-        for part in parts! {
-            let partInfo = part as! NSDictionary?
-            var part = GlyphPart()
-            let adv = partInfo!["advance"] as! NSNumber?
-            part.fullAdvance = self.fontUnitsToPt(adv!.intValue)
-            let end = partInfo!["endConnector"] as! NSNumber?
-            part.endConnectorLength = self.fontUnitsToPt(end!.intValue)
-            let start = partInfo!["startConnector"] as! NSNumber?
-            part.startConnectorLength = self.fontUnitsToPt(start!.intValue)
-            let ext = partInfo!["extender"] as! NSNumber?
-            part.isExtender = ext!.boolValue
-            let glyphName = partInfo!["glyph"] as! String?
-            part.glyph = self.font?.get(glyphWithName: glyphName!)
-            rv.append(part)
-        }
-        return rv
+  /** Returns an array of the glyph parts to be used for constructing vertical variants
+   of this glyph. If there is no glyph assembly defined, returns an empty array. */
+  func getVerticalGlyphAssembly(forGlyph glyph:CGGlyph) -> [GlyphPart] {
+    let assemblyTable = _mathTable[kVertAssembly] as! Dictionary<String, Dictionary<String, Any>>
+    let glyphName = self.font?.get(nameForGlyph: glyph)
+
+    guard let assemblyInfo = assemblyTable[glyphName!] else {
+      return []
     }
 
+    guard let parts = assemblyInfo[kAssemblyParts] as? Array<Dictionary<String, Any>> else {
+      return []
+    }
+
+    return parts.map {part in
+      var _part = GlyphPart()
+      let adv = part["advance"] as! Int
+      _part.fullAdvance = self.fontUnitsToPt(adv)
+      let end = part["endConnector"] as! Int
+      _part.endConnectorLength = self.fontUnitsToPt(end)
+      let start = part["startConnector"] as! Int
+      _part.startConnectorLength = self.fontUnitsToPt(start)
+      let ext = part["extender"] as! Bool
+      _part.isExtender = ext
+      let glyphName = part["glyph"] as! String?
+      _part.glyph = self.font?.get(glyphWithName: glyphName!)
+      return _part
+    }
+  }
     
 }

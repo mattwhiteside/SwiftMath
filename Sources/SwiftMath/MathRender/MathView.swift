@@ -47,24 +47,29 @@ public struct MathView : View {
   }
   
 
-  public init(latexExpr: String, fontSize:Double){
+  public init(latexExpr: String, fontSize:Double) {
     self.fontSize = CGFloat(fontSize)
-    if let __font = MTFontManager().termesFont(withSize: fontSize) {
-      font = __font
-    } else {
-      font = MTFontManager.fontManager.defaultFont!
+    do {
+      if let __font = try MTFontManager().termesFont(withSize: fontSize) {
+        font = __font
+      } else {
+        font = MTFontManager.fontManager.defaultFont!
+      }
+      //self.textColor = .textColor
+      textAlignment = .center
+      contentInsets = MTEdgeInsetsZero
+      latex = latexExpr//this should go last
     }
-    //self.textColor = .textColor
-    textAlignment = .center
-    contentInsets = MTEdgeInsetsZero
-    latex = latexExpr//this should go last
+    catch let anyError {
+      fatalError("Error: \(anyError)")
+    }
   }
     
   public var body: some View {
     Canvas { context, size in
       if let mathList = MTMathListBuilder.build(fromString: self.latex, error: &self.error) {
         // print("Pre list = \(_mathList!)")
-        if let _displayList = MTTypesetter.createLineForMathList(mathList, font: font, style: currentStyle) {
+        if let _displayList = try? MTTypesetter.createLineForMathList(mathList, font: font, style: currentStyle) {
           var displayList = _displayList
           displayList.textColor = textColor
           // print("Post list = \(_mathList!)")
@@ -95,7 +100,7 @@ public struct MathView : View {
       }
     }
     if let _error = error, displayErrorInline {
-      Text(_error.localizedDescription).foregroundColor(.red)
+      Text(_error.description).foregroundColor(.red)
     }
   }
 
