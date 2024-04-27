@@ -868,7 +868,7 @@ class MTTypesetter {
     @discardableResult
     func addDisplayLine() -> MT.CTLineDisplay? {
       // add the font
-      currentLine[currentLine.characters.startIndex...currentLine.characters.endIndex].font = styleFont.ctFont
+      currentLine[currentLine.characters.startIndex..<currentLine.characters.endIndex].font = styleFont.ctFont
 
       /*assert(currentLineIndexRange.length == numCodePoints(currentLine.string),
        "The length of the current line: %@ does not match the length of the range (%d, %d)",

@@ -12,8 +12,9 @@ import QuartzCore
 import CoreText
 import SwiftUI
 
-@attached(peer, 
-  names:
+@attached(
+  peer
+  ,names:
     //TODO: these 'named' values can all be replaced with 'arbitrary
     //when a newer compiler is available.
     named(CTLineDisplay),
@@ -30,7 +31,7 @@ public macro AddMTDisplayConformances(_ structSkeletons:String...) = #externalMa
 
 extension NSAttributedString {
   convenience init(_ attrString:FoundationEssentials.AttributedString) {
-    fatalError()
+    self.init(string:attrString.description)
   }
 }
 public enum MT {
@@ -69,7 +70,7 @@ public struct CTLineDisplay {
         set {
             _textColor = newValue
             var newAttrStr = attributedString!            
-            let range = newAttrStr.characters.startIndex...newAttrStr.characters.endIndex
+            let range = newAttrStr.characters.startIndex..<newAttrStr.characters.endIndex
             newAttrStr[range].foregroundColor = self.textColor!.cgColor
             self.attributedString = newAttrStr
         }
