@@ -31,9 +31,12 @@ public macro AddMTDisplayConformances(_ structSkeletons:String...) = #externalMa
 
 extension NSAttributedString {
   convenience init(_ attrString:FoundationEssentials.AttributedString) {
-    self.init(string:attrString.description)
+    //homer
+    self.init(string: String(attrString.characters), attributes: [:])
+    //self.init(string:attrString.description)
   }
 }
+
 public enum MT {
   @AddMTDisplayConformances(
 """
