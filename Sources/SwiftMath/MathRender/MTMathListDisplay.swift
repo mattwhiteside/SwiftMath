@@ -15,7 +15,7 @@ import SwiftUI
 @attached(
   peer
   ,names:
-    //TODO: these 'named' values can all be replaced with 'arbitrary
+    //TODO: these 'named' values can all be replaced with 'arbitrary'
     //when a newer compiler is available.
     named(CTLineDisplay),
     named(MathListDisplay),
@@ -31,9 +31,26 @@ public macro AddMTDisplayConformances(_ structSkeletons:String...) = #externalMa
 
 extension NSAttributedString {
   convenience init(_ attrString:FoundationEssentials.AttributedString) {
-    //homer
-    self.init(string: String(attrString.characters), attributes: [:])
-    //self.init(string:attrString.description)
+
+    var attrs:Dictionary<NSAttributedString.Key, Any> = [:]
+
+    if let font = attrString.font {
+      attrs[.font] = font
+    }
+
+    if let foregroundColor = attrString.foregroundColor {
+      attrs[.foregroundColor] = foregroundColor
+    }
+
+    if let kern = attrString.kerning {
+      attrs[.kern] = kern
+    }
+
+    if let ligature = attrString.ligature {
+      attrs[.ligature] = ligature
+    }
+    
+    self.init(string: String(attrString.characters), attributes: attrs)
   }
 }
 

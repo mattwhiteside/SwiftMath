@@ -66,7 +66,7 @@ extension FoundationEssentials.AttributeScopes {
   @frozen
   @_nonSendable
   public enum KerningAttribute : FoundationEssentials.CodableAttributedStringKey {
-    public typealias Value = CGFloat
+    public typealias Value = Float64
     public static let name = String(kCTKernAttributeName)
   }
 
@@ -620,7 +620,6 @@ class MTTypesetter {
 //                FoundationEssentials.AttributeContainer().kerning(interElementSpace)
 //              )
               let range = currentLine.characters.startIndex ... currentLine.characters.endIndex
-              //currentLine[range].kerning = interElementSpace
               //currentLine[range].languageIdentifier = "homer"
               currentLine[range].kerning = Double(interElementSpace)
             } else {

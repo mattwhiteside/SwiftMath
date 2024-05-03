@@ -67,7 +67,8 @@ public struct MathView : View {
     
   public var body: some View {
     Canvas { context, size in
-      if let mathList = MTMathListBuilder.build(fromString: self.latex, error: &self.error) {
+      var _error:String? = nil
+      if let mathList = MTMathListBuilder.build(fromString: self.latex, error: &_error) {
         // print("Pre list = \(_mathList!)")
         if let _displayList = try? MTTypesetter.createLineForMathList(mathList, font: font, style: currentStyle) {
           var displayList = _displayList
