@@ -29,30 +29,6 @@ import SwiftUI
 )
 public macro AddMTDisplayConformances(_ structSkeletons:String...) = #externalMacro(module: "MattsMacrosImpl", type: "ContextWalkerMacro")
 
-extension NSAttributedString {
-  convenience init(_ attrString:FoundationEssentials.AttributedString) {
-
-    var attrs:Dictionary<NSAttributedString.Key, Any> = [:]
-
-    if let font = attrString.font {
-      attrs[.font] = font
-    }
-
-    if let foregroundColor = attrString.foregroundColor {
-      attrs[.foregroundColor] = foregroundColor
-    }
-
-    if let kern = attrString.kerning {
-      attrs[.kern] = kern
-    }
-
-    if let ligature = attrString.ligature {
-      attrs[.ligature] = ligature
-    }
-    
-    self.init(string: String(attrString.characters), attributes: attrs)
-  }
-}
 
 public enum MT {
   @AddMTDisplayConformances(
