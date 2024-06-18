@@ -358,7 +358,7 @@ func getBboxDetails(_ bbox:CGRect, ascent:inout CGFloat, descent:inout CGFloat) 
 
 // MARK: - MTTypesetter
 @available(macOS 14, iOS 17, tvOS 15, watchOS 8, *)
-class MTTypesetter {
+struct MTTypesetter {
     var font:MTFont!
     var displayAtoms = [any MT.Display]()
     var currentPosition = CGPoint.zero
@@ -368,7 +368,7 @@ class MTTypesetter {
     var style:MTLineStyle { didSet { _styleFont = nil } }
     private var _styleFont:MTFont?
     var styleFont:MTFont {
-      get {
+      mutating get {
         do {
           if _styleFont == nil {
             _styleFont = try font.copy(withSize: Self.getStyleSize(style, font: font))
@@ -396,7 +396,7 @@ class MTTypesetter {
     static func createLineForMathList(_ mathList:MTMathList?, font:MTFont?, style:MTLineStyle, cramped:Bool, spaced:Bool) throws -> MT.MathListDisplay? {
       assert(font != nil)
       let preprocessedAtoms = self.preprocessMathList(mathList)
-      let typesetter = MTTypesetter(withFont:font, style:style, cramped:cramped, spaced:spaced)
+      var typesetter = MTTypesetter(withFont:font, style:style, cramped:cramped, spaced:spaced)
       try typesetter.createDisplayAtoms(preprocessedAtoms)
       let lastAtom = mathList!.atoms.last
       let last = lastAtom?.indexRange ?? __NSRange(location:0, length:0)
@@ -469,7 +469,7 @@ class MTTypesetter {
     }
   }
     
-  func addInterElementSpace(_ prevNode:MTMathAtom?, currentType type:MTMathAtomType) {
+  mutating func addInterElementSpace(_ prevNode:MTMathAtom?, currentType type:MTMathAtomType) {
     var interElementSpace = CGFloat(0)
     if prevNode != nil {
       interElementSpace = getInterElementSpace(prevNode!.type, right:type)
@@ -480,7 +480,7 @@ class MTTypesetter {
     self.currentPosition.x += interElementSpace
   }
     
-  func createDisplayAtoms(_ preprocessed:[MTMathAtom]) throws {
+  mutating func createDisplayAtoms(_ preprocessed:[MTMathAtom]) throws {
     // items should contain all the nodes that need to be layed out.
     // convert to a list of DisplayAtoms
     var prevNode:MTMathAtom? = nil
@@ -793,7 +793,7 @@ class MTTypesetter {
   }
     
     @discardableResult
-    func addDisplayLine() -> MT.CTLineDisplay? {
+    mutating func addDisplayLine() -> MT.CTLineDisplay? {
       // add the font
       currentLine[currentLine.characters.startIndex..<currentLine.characters.endIndex].font = styleFont.ctFont
 
@@ -832,7 +832,7 @@ class MTTypesetter {
         }
     }
     
-    func getInterElementSpace(_ left: MTMathAtomType, right:MTMathAtomType) -> CGFloat {
+  mutating func getInterElementSpace(_ left: MTMathAtomType, right:MTMathAtomType) -> CGFloat {
         let leftIndex = getInterElementSpaceArrayIndexForType(left, row: true)
         let rightIndex = getInterElementSpaceArrayIndexForType(right, row: false)
         let spaceArray = getInterElementSpaces()[Int(leftIndex)]
@@ -864,7 +864,7 @@ class MTTypesetter {
     // superscript is cramped only if the current style is cramped
     func superScriptCramped() -> Bool { cramped }
     
-    func superScriptShiftUp() -> CGFloat {
+    mutating func superScriptShiftUp() -> CGFloat {
         if cramped {
             return styleFont.mathTable!.superscriptShiftUpCramped;
         } else {
@@ -874,7 +874,7 @@ class MTTypesetter {
     
     // make scripts for the last atom
     // index is the index of the element which is getting the sub/super scripts.
-    func makeScripts(_ atom: MTMathAtom?, display:(any MT.Display)?, index:UInt, delta:CGFloat) throws -> any MT.Display {
+  mutating func makeScripts(_ atom: MTMathAtom?, display:(any MT.Display)?, index:UInt, delta:CGFloat) throws -> any MT.Display {
       assert(atom!.subScript != nil || atom!.superScript != nil)
       var returnDisplay = display
       var superScriptShiftUp = 0.0
@@ -949,7 +949,7 @@ class MTTypesetter {
     
     // MARK: - Fractions
     
-    func numeratorShiftUp(_ hasRule:Bool) -> CGFloat {
+    mutating func numeratorShiftUp(_ hasRule:Bool) -> CGFloat {
         if hasRule {
             if style == .display {
                 return styleFont.mathTable!.fractionNumeratorDisplayStyleShiftUp
@@ -965,7 +965,7 @@ class MTTypesetter {
         }
     }
     
-    func numeratorGapMin() -> CGFloat {
+  mutating func numeratorGapMin() -> CGFloat {
         if style == .display {
             return styleFont.mathTable!.fractionNumeratorDisplayStyleGapMin;
         } else {
@@ -973,7 +973,7 @@ class MTTypesetter {
         }
     }
     
-    func denominatorShiftDown(_ hasRule:Bool) -> CGFloat {
+  mutating func denominatorShiftDown(_ hasRule:Bool) -> CGFloat {
         if hasRule {
             if style == .display {
                 return styleFont.mathTable!.fractionDenominatorDisplayStyleShiftDown;
@@ -989,7 +989,7 @@ class MTTypesetter {
         }
     }
     
-    func denominatorGapMin() -> CGFloat {
+  mutating func denominatorGapMin() -> CGFloat {
         if style == .display {
             return styleFont.mathTable!.fractionDenominatorDisplayStyleGapMin;
         } else {
@@ -997,7 +997,7 @@ class MTTypesetter {
         }
     }
     
-    func stackGapMin() -> CGFloat {
+  mutating func stackGapMin() -> CGFloat {
         if style == .display {
             return styleFont.mathTable!.stackDisplayStyleGapMin;
         } else {
@@ -1005,7 +1005,7 @@ class MTTypesetter {
         }
     }
     
-    func fractionDelimiterHeight()-> CGFloat {
+  mutating func fractionDelimiterHeight()-> CGFloat {
         if style == .display {
             return styleFont.mathTable!.fractionDelimiterDisplayStyleSize;
         } else {
@@ -1020,7 +1020,7 @@ class MTTypesetter {
         return style.inc()
     }
     
-    func makeFraction(_ frac:MTFraction?) throws -> (any MT.Display)? {
+    mutating func makeFraction(_ frac:MTFraction?) throws -> (any MT.Display)? {
         // lay out the parts of the fraction
         let fractionStyle = self.fractionStyle;
         let numeratorDisplay = try MTTypesetter.createLineForMathList(frac!.numerator, font:font, style:fractionStyle(), cramped:false)
@@ -1077,7 +1077,7 @@ class MTTypesetter {
         }
     }
     
-    func addDelimitersToFractionDisplay(_ _display:MT.FractionDisplay?, forFraction frac:MTFraction?) -> (some MT.Display)? {
+  mutating func addDelimitersToFractionDisplay(_ _display:MT.FractionDisplay?, forFraction frac:MTFraction?) -> (some MT.Display)? {
         assert(!frac!.leftDelimiter.isEmpty || !frac!.rightDelimiter.isEmpty, "Fraction should have a delimiters to call this function");
         var display = _display
         var innerElements = [any MT.Display]()
@@ -1115,7 +1115,7 @@ class MTTypesetter {
         }
     }
     
-    func getRadicalGlyphWithHeight(_ radicalHeight:CGFloat) -> (any MTDisplayDS)? {
+  mutating func getRadicalGlyphWithHeight(_ radicalHeight:CGFloat) -> (any MTDisplayDS)? {
         var glyphAscent=CGFloat(0), glyphDescent=CGFloat(0), glyphWidth=CGFloat(0)
         
         let radicalGlyph = self.findGlyphForCharacterAtIndex("\u{221A}".startIndex, inString:"\u{221A}")
@@ -1137,7 +1137,7 @@ class MTTypesetter {
         return glyphDisplay;
     }
     
-    func makeRadical(_ rad:MTRadical) throws -> MT.RadicalDisplay? {
+  mutating func makeRadical(_ rad:MTRadical) throws -> MT.RadicalDisplay? {
         guard let radicand = rad.radicand else {
           return nil
         }
