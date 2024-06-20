@@ -359,35 +359,38 @@ func getBboxDetails(_ bbox:CGRect, ascent:inout CGFloat, descent:inout CGFloat) 
 // MARK: - MTTypesetter
 @available(macOS 14, iOS 17, tvOS 15, watchOS 8, *)
 struct MTTypesetter {
-    var font:MTFont!
-    var displayAtoms = [any MT.Display]()
-    var currentPosition = CGPoint.zero
-    var currentLine:FoundationEssentials.AttributedString!
-    var currentAtoms = [MTMathAtom]()   // List of atoms that make the line
-    var currentLineIndexRange = __NSRange(location:0, length: 0)
-    var style:MTLineStyle { didSet { _styleFont = nil } }
-    private var _styleFont:MTFont?
-    var styleFont:MTFont {
-      mutating get {
-        do {
-          if _styleFont == nil {
-            _styleFont = try font.copy(withSize: Self.getStyleSize(style, font: font))
-          }          
-          return _styleFont!
-        }
-        catch let anyError {
-          fatalError("Error: \(anyError)")
-        }
+  var font:MTFont!
+  var displayAtoms = [any MT.Display]()
+  var currentPosition = CGPoint.zero
+  var currentLine:FoundationEssentials.AttributedString!
+  var currentAtoms = [MTMathAtom]()   // List of atoms that make the line
+  var currentLineIndexRange = __NSRange(location:0, length: 0)
+  var style:MTLineStyle {
+    didSet {
+      do {
+        _styleFont = try font.copy(withSize: Self.getStyleSize(style, font: font))
+      }
+      catch let anyError {
+        fatalError("Error: \(anyError)")
       }
     }
-    var cramped = false
-    var spaced = false
-    
-    static func createLineForMathList(_ mathList:MTMathList?, font:MTFont?, style:MTLineStyle) throws -> MT.MathListDisplay? {
-      let finalizedList = mathList?.finalized
-      // default is not cramped
-      return try self.createLineForMathList(finalizedList, font:font, style:style, cramped:false)
+  }
+  
+  private var _styleFont:MTFont
+  var styleFont:MTFont {
+    get {
+      return _styleFont
     }
+  }
+  
+  var cramped = false
+  var spaced = false
+    
+  static func createLineForMathList(_ mathList:MTMathList?, font:MTFont?, style:MTLineStyle) throws -> MT.MathListDisplay? {
+    let finalizedList = mathList?.finalized
+    // default is not cramped
+    return try self.createLineForMathList(finalizedList, font:font, style:style, cramped:false)
+  }
     
     static func createLineForMathList(_ mathList:MTMathList?, font:MTFont?, style:MTLineStyle, cramped:Bool) throws -> MT.MathListDisplay? {
       return try self.createLineForMathList(mathList, font:font, style:style, cramped:cramped, spaced:false)
@@ -414,8 +417,14 @@ struct MTTypesetter {
       self.spaced = spaced
       self.currentLine = AttributedString()
       self.currentAtoms = [MTMathAtom]()
+      do {
+        self._styleFont = try font!.copy(withSize: Self.getStyleSize(style, font: font))
+      }
+      catch let anyError {
+        fatalError("Error: \(anyError)")
+      }
       self.style = style
-      self.currentLineIndexRange = __NSRange(location:Int.max, length:Int.max);
+      self.currentLineIndexRange = __NSRange(location:Int.max, length:Int.max)
     }
     
     static func preprocessMathList(_ ml:MTMathList?) -> [MTMathAtom] {
@@ -949,23 +958,23 @@ struct MTTypesetter {
     
     // MARK: - Fractions
     
-    mutating func numeratorShiftUp(_ hasRule:Bool) -> CGFloat {
-        if hasRule {
-            if style == .display {
-                return styleFont.mathTable!.fractionNumeratorDisplayStyleShiftUp
-            } else {
-                return styleFont.mathTable!.fractionNumeratorShiftUp
-            }
-        } else {
-            if style == .display {
-                return styleFont.mathTable!.stackTopDisplayStyleShiftUp
-            } else {
-                return styleFont.mathTable!.stackTopShiftUp
-            }
-        }
+  func numeratorShiftUp(_ hasRule:Bool) -> CGFloat {
+    if hasRule {
+      if style == .display {
+        return styleFont.mathTable!.fractionNumeratorDisplayStyleShiftUp
+      } else {
+        return styleFont.mathTable!.fractionNumeratorShiftUp
+      }
+    } else {
+      if style == .display {
+        return styleFont.mathTable!.stackTopDisplayStyleShiftUp
+      } else {
+        return styleFont.mathTable!.stackTopShiftUp
+      }
     }
+  }
     
-  mutating func numeratorGapMin() -> CGFloat {
+  func numeratorGapMin() -> CGFloat {
         if style == .display {
             return styleFont.mathTable!.fractionNumeratorDisplayStyleGapMin;
         } else {
@@ -973,45 +982,45 @@ struct MTTypesetter {
         }
     }
     
-  mutating func denominatorShiftDown(_ hasRule:Bool) -> CGFloat {
-        if hasRule {
-            if style == .display {
-                return styleFont.mathTable!.fractionDenominatorDisplayStyleShiftDown;
-            } else {
-                return styleFont.mathTable!.fractionDenominatorShiftDown;
-            }
-        } else {
-            if style == .display {
-                return styleFont.mathTable!.stackBottomDisplayStyleShiftDown;
-            } else {
-                return styleFont.mathTable!.stackBottomShiftDown;
-            }
-        }
+  func denominatorShiftDown(_ hasRule:Bool) -> CGFloat {
+    if hasRule {
+      if style == .display {
+        return styleFont.mathTable!.fractionDenominatorDisplayStyleShiftDown;
+      } else {
+        return styleFont.mathTable!.fractionDenominatorShiftDown;
+      }
+    } else {
+      if style == .display {
+        return styleFont.mathTable!.stackBottomDisplayStyleShiftDown;
+      } else {
+        return styleFont.mathTable!.stackBottomShiftDown;
+      }
     }
+  }
     
-  mutating func denominatorGapMin() -> CGFloat {
-        if style == .display {
-            return styleFont.mathTable!.fractionDenominatorDisplayStyleGapMin;
-        } else {
-            return styleFont.mathTable!.fractionDenominatorGapMin;
-        }
+  func denominatorGapMin() -> CGFloat {
+    if style == .display {
+      styleFont.mathTable!.fractionDenominatorDisplayStyleGapMin;
+    } else {
+      styleFont.mathTable!.fractionDenominatorGapMin;
     }
+  }
     
-  mutating func stackGapMin() -> CGFloat {
-        if style == .display {
-            return styleFont.mathTable!.stackDisplayStyleGapMin;
-        } else {
-            return styleFont.mathTable!.stackGapMin;
-        }
+  func stackGapMin() -> CGFloat {
+    if style == .display {
+      styleFont.mathTable!.stackDisplayStyleGapMin;
+    } else {
+      styleFont.mathTable!.stackGapMin;
     }
+  }
     
-  mutating func fractionDelimiterHeight()-> CGFloat {
-        if style == .display {
-            return styleFont.mathTable!.fractionDelimiterDisplayStyleSize;
-        } else {
-            return styleFont.mathTable!.fractionDelimiterSize;
-        }
+  func fractionDelimiterHeight()-> CGFloat {
+    if style == .display {
+      styleFont.mathTable!.fractionDelimiterDisplayStyleSize;
+    } else {
+      styleFont.mathTable!.fractionDelimiterSize;
     }
+  }
     
     func fractionStyle() -> MTLineStyle {
         if style == .scriptOfScript {
@@ -1020,7 +1029,7 @@ struct MTTypesetter {
         return style.inc()
     }
     
-    mutating func makeFraction(_ frac:MTFraction?) throws -> (any MT.Display)? {
+    func makeFraction(_ frac:MTFraction?) throws -> (any MT.Display)? {
         // lay out the parts of the fraction
         let fractionStyle = self.fractionStyle;
         let numeratorDisplay = try MTTypesetter.createLineForMathList(frac!.numerator, font:font, style:fractionStyle(), cramped:false)
@@ -1036,22 +1045,22 @@ struct MTTypesetter {
             // This is the difference between the lowest edge of the numerator and the top edge of the fraction bar
             let distanceFromNumeratorToBar = (numeratorShiftUp - numeratorDisplay!.descent) - (barLocation + barThickness/2);
             // The distance should at least be displayGap
-            let minNumeratorGap = self.numeratorGapMin;
-            if distanceFromNumeratorToBar < minNumeratorGap() {
+            var minNumeratorGap = self.numeratorGapMin()
+            if distanceFromNumeratorToBar < minNumeratorGap {
                 // This makes the distance between the bottom of the numerator and the top edge of the fraction bar
                 // at least minNumeratorGap.
-                numeratorShiftUp += (minNumeratorGap() - distanceFromNumeratorToBar);
+                numeratorShiftUp += (minNumeratorGap - distanceFromNumeratorToBar);
             }
             
             // Do the same for the denominator
             // This is the difference between the top edge of the denominator and the bottom edge of the fraction bar
             let distanceFromDenominatorToBar = (barLocation - barThickness/2) - (denominatorDisplay!.ascent - denominatorShiftDown);
             // The distance should at least be denominator gap
-            let minDenominatorGap = self.denominatorGapMin;
-            if distanceFromDenominatorToBar < minDenominatorGap() {
+            let minDenominatorGap = self.denominatorGapMin()
+            if distanceFromDenominatorToBar < minDenominatorGap {
                 // This makes the distance between the top of the denominator and the bottom of the fraction bar to be exactly
                 // minDenominatorGap
-                denominatorShiftDown += (minDenominatorGap() - distanceFromDenominatorToBar);
+                denominatorShiftDown += (minDenominatorGap - distanceFromDenominatorToBar);
             }
         } else {
             // This is the distance between the numerator and the denominator
@@ -1077,14 +1086,14 @@ struct MTTypesetter {
         }
     }
     
-  mutating func addDelimitersToFractionDisplay(_ _display:MT.FractionDisplay?, forFraction frac:MTFraction?) -> (some MT.Display)? {
+  func addDelimitersToFractionDisplay(_ _display:MT.FractionDisplay?, forFraction frac:MTFraction?) -> (some MT.Display)? {
         assert(!frac!.leftDelimiter.isEmpty || !frac!.rightDelimiter.isEmpty, "Fraction should have a delimiters to call this function");
         var display = _display
         var innerElements = [any MT.Display]()
-        let glyphHeight = self.fractionDelimiterHeight
+        let glyphHeight = self.fractionDelimiterHeight()
         var position = CGPoint.zero
         if !frac!.leftDelimiter.isEmpty {
-            var leftGlyph = self.findGlyphForBoundary(frac!.leftDelimiter, withHeight:glyphHeight())
+            var leftGlyph = self.findGlyphForBoundary(frac!.leftDelimiter, withHeight:glyphHeight)
             leftGlyph!.position = position
             position.x += leftGlyph!.width
             innerElements.append(leftGlyph!)
@@ -1095,7 +1104,7 @@ struct MTTypesetter {
         innerElements.append(display!)
         
         if !frac!.rightDelimiter.isEmpty {
-            var rightGlyph = self.findGlyphForBoundary(frac!.rightDelimiter, withHeight:glyphHeight())
+            var rightGlyph = self.findGlyphForBoundary(frac!.rightDelimiter, withHeight:glyphHeight)
             rightGlyph!.position = position
             position.x += rightGlyph!.width
             innerElements.append(rightGlyph!)
@@ -1107,13 +1116,13 @@ struct MTTypesetter {
     
     // MARK: - Radicals
     
-    func radicalVerticalGap() -> CGFloat {
-        if style == .display {
-            return styleFont.mathTable!.radicalDisplayStyleVerticalGap
-        } else {
-            return styleFont.mathTable!.radicalVerticalGap
-        }
+  mutating func radicalVerticalGap() -> CGFloat {
+    if style == .display {
+      return styleFont.mathTable!.radicalDisplayStyleVerticalGap
+    } else {
+      return styleFont.mathTable!.radicalVerticalGap
     }
+  }
     
   mutating func getRadicalGlyphWithHeight(_ radicalHeight:CGFloat) -> (any MTDisplayDS)? {
         var glyphAscent=CGFloat(0), glyphDescent=CGFloat(0), glyphWidth=CGFloat(0)
@@ -1317,47 +1326,47 @@ struct MTTypesetter {
     
     // MARK: - Large Operators
     
-  func makeLargeOp(_ op:MTLargeOperator!) throws -> (any MT.Display)?  {
-        let limits = op.limits && style == .display
-        var delta = CGFloat(0)
-        if op.nucleus.count == 1 {
-          var glyph = self.findGlyphForCharacterAtIndex(op.nucleus.startIndex, inString:op.nucleus)
-          if style == .display && glyph != 0 {
-            // Enlarge the character in display style.
-            glyph = styleFont.mathTable!.getLargerGlyph(glyph)
-          }
-          // This is be the italic correction of the character.
-          delta = styleFont.mathTable!.getItalicCorrection(glyph)
-
-          // vertically center
-          let bbox = CTFontGetBoundingRectsForGlyphs(styleFont.ctFont, .horizontal, &glyph, nil, 1);
-          let width = CTFontGetAdvancesForGlyphs(styleFont.ctFont, .horizontal, &glyph, nil, 1);
-          var ascent=CGFloat(0), descent=CGFloat(0)
-          getBboxDetails(bbox, ascent: &ascent, descent: &descent)
-          let shiftDown = 0.5*(ascent - descent) - styleFont.mathTable!.axisHeight;
-          var glyphDisplay:any MTDisplayDS = MT.GlyphDisplay(withGlpyh: glyph, range: op.indexRange, font: styleFont)
-          glyphDisplay.ascent = ascent;
-          glyphDisplay.descent = descent;
-          glyphDisplay.width = width;
-          if (op.subScript != nil) && !limits {
-            // Remove italic correction from the width of the glyph if
-            // there is a subscript and limits is not set.
-            glyphDisplay.width -= delta;
-          }
-          glyphDisplay.shiftDown = shiftDown;
-          glyphDisplay.position = currentPosition;
-          return try self.addLimitsToDisplay(glyphDisplay, forOperator:op, delta:delta)
-        } else {
-            // Create a regular node
-          var line = FoundationEssentials.AttributedString(op.nucleus)
-            // add the font
-          line[line.characters.startIndex...line.characters.endIndex].font = styleFont.ctFont!
-          let displayAtom:any MT.Display = MT.CTLineDisplay(withString: line, position: currentPosition, range: op.indexRange, font: styleFont, atoms: [op])
-          return try self.addLimitsToDisplay(displayAtom, forOperator:op, delta:0)
+    mutating func makeLargeOp(_ op:MTLargeOperator!) throws -> (any MT.Display)?  {
+      let limits = op.limits && style == .display
+      var delta = CGFloat(0)
+      if op.nucleus.count == 1 {
+        var glyph = self.findGlyphForCharacterAtIndex(op.nucleus.startIndex, inString:op.nucleus)
+        if style == .display && glyph != 0 {
+          // Enlarge the character in display style.
+          glyph = styleFont.mathTable!.getLargerGlyph(glyph)
         }
+        // This is be the italic correction of the character.
+        delta = styleFont.mathTable!.getItalicCorrection(glyph)
+
+        // vertically center
+        let bbox = CTFontGetBoundingRectsForGlyphs(styleFont.ctFont, .horizontal, &glyph, nil, 1);
+        let width = CTFontGetAdvancesForGlyphs(styleFont.ctFont, .horizontal, &glyph, nil, 1);
+        var ascent=CGFloat(0), descent=CGFloat(0)
+        getBboxDetails(bbox, ascent: &ascent, descent: &descent)
+        let shiftDown = 0.5*(ascent - descent) - styleFont.mathTable!.axisHeight;
+        var glyphDisplay:any MTDisplayDS = MT.GlyphDisplay(withGlpyh: glyph, range: op.indexRange, font: styleFont)
+        glyphDisplay.ascent = ascent;
+        glyphDisplay.descent = descent;
+        glyphDisplay.width = width;
+        if (op.subScript != nil) && !limits {
+          // Remove italic correction from the width of the glyph if
+          // there is a subscript and limits is not set.
+          glyphDisplay.width -= delta;
+        }
+        glyphDisplay.shiftDown = shiftDown;
+        glyphDisplay.position = currentPosition;
+        return try self.addLimitsToDisplay(glyphDisplay, forOperator:op, delta:delta)
+      } else {
+          // Create a regular node
+        var line = FoundationEssentials.AttributedString(op.nucleus)
+          // add the font
+        line[line.characters.startIndex...line.characters.endIndex].font = styleFont.ctFont!
+        let displayAtom:any MT.Display = MT.CTLineDisplay(withString: line, position: currentPosition, range: op.indexRange, font: styleFont, atoms: [op])
+        return try self.addLimitsToDisplay(displayAtom, forOperator:op, delta:0)
+      }
     }
     
-    func addLimitsToDisplay(_ display:any MT.Display, forOperator op:MTLargeOperator, delta:CGFloat) throws -> any MT.Display {
+    mutating func addLimitsToDisplay(_ display:any MT.Display, forOperator op:MTLargeOperator, delta:CGFloat) throws -> any MT.Display {
       // If there is no subscript or superscript, just return the current display
       if op.subScript == nil && op.superScript == nil {
         currentPosition.x += display.width
