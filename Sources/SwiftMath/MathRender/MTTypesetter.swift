@@ -12,7 +12,7 @@ import SwiftUI
 // MARK: - Inter Element Spacing
 
 //temp stuff to eliminate dependency on Foundation
-public struct __NSRange {
+public struct __NSRange:Sendable {
   var location:Int
   var length:Int
   var upperLimit:Int {

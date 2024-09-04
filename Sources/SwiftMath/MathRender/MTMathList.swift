@@ -13,7 +13,7 @@ import Foundation
  
  The type of the atom determines how it is rendered, and spacing between the atoms.
  */
-public enum MTMathAtomType: Int, CustomStringConvertible, Comparable {
+public enum MTMathAtomType: Int, CustomStringConvertible, Comparable, Sendable {
     /// A number or text in ordinary format - Ord in TeX
     case ordinary = 1
     /// A number - Does not exist in TeX

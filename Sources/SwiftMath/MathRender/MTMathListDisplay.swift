@@ -12,23 +12,8 @@ import QuartzCore
 @preconcurrency import CoreText
 import SwiftUI
 
-@attached(
-  peer
-  ,names:
-    //TODO: these 'named' values can all be replaced with 'arbitrary'
-    //when a newer compiler is available.
-    named(CTLineDisplay),
-    named(MathListDisplay),
-    named(GlyphDisplay),
-    named(GlyphConstructionDisplay),
-    named(LargeOpLimitsDisplay),
-    named(FractionDisplay),
-    named(RadicalDisplay),
-    named(LineDisplay),
-    named(AccentDisplay)
-)
+@attached(peer, names: arbitrary)
 public macro AddMTDisplayConformances(_ structSkeletons:String...) = #externalMacro(module: "MattsMacrosImpl", type: "ContextWalkerMacro")
-
 
 public enum MT {
   @AddMTDisplayConformances(
@@ -111,7 +96,7 @@ public struct MathListDisplay {
     /**
           The type of position for a line, i.e. subscript/superscript or regular.
      */
-    public enum LinePosition : Int {
+    public enum LinePosition : Int, Sendable {
         /// Regular
         case regular
         /// Positioned at a subscript
