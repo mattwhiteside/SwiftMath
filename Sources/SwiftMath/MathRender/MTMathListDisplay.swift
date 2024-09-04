@@ -9,7 +9,7 @@
 import Foundation.NSAttributedString
 import FoundationEssentials
 import QuartzCore
-import CoreText
+@preconcurrency import CoreText
 import SwiftUI
 
 @attached(
@@ -540,11 +540,11 @@ struct RadicalDisplay {
         self.range = range
     }
 
-    mutating func setDegree(_ degree:MT.MathListDisplay?, fontMetrics:MTFontMathTable?) {
+    mutating func setDegree(_ degree:MT.MathListDisplay?, fontMetrics:MTFont) {
         // sets up the degree of the radical
-        var kernBefore = fontMetrics!.radicalKernBeforeDegree;
-        let kernAfter = fontMetrics!.radicalKernAfterDegree;
-        let raise = fontMetrics!.radicalDegreeBottomRaisePercent * (self.ascent - self.descent);
+        var kernBefore = fontMetrics.radicalKernBeforeDegree
+        let kernAfter = fontMetrics.radicalKernAfterDegree
+        let raise = fontMetrics.radicalDegreeBottomRaisePercent * (self.ascent - self.descent);
 
         // The layout is:
         // kernBefore, raise, degree, kernAfter, radical
@@ -730,7 +730,7 @@ struct AccentDisplay {
     
 }
 """)
-  public protocol Display {
+  public protocol Display:Sendable {
     /// The distance from the axis to the top of the display
     var ascent:CGFloat{
       get

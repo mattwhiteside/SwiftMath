@@ -9,9 +9,9 @@
 
 import Foundation
 
-public class MTFontManager {
+public final class MTFontManager:Sendable {
     
-    static public private(set) var manager: MTFontManager = {
+    static public let manager: MTFontManager = {
         MTFontManager()
     }()
     
@@ -21,41 +21,64 @@ public class MTFontManager {
         return manager
     }
 
-    public init() { }
-    
-    var nameToFontMap = [String: MTFont]()
-    
-    public func font(withName name:String, size:CGFloat) throws -> MTFont? {
-      var f = self.nameToFontMap[name]
-      if f == nil {
-        f = try MTFont(fontWithName: name, size: size)
-        self.nameToFontMap[name] = f
+    let nameToFontMap: [String: MTFont]
+
+    public init() {
+      do {
+        let size = kDefaultFontSize
+        var _nameToFontMap = [String: MTFont]()
+        func _font(withName name:String, size:CGFloat) throws -> MTFont? {
+          var f = _nameToFontMap[name]
+          if f == nil {
+            f = try MTFont(name: name, size: size)
+            _nameToFontMap[name] = f
+          }
+            
+          if f!.fontSize == size { return f }
+          else { return try f!.copy(withSize: size) }
+        }
+
+        let _ = try _font(withName: "latinmodern-math", size: size)
+        let _ = try _font(withName: "KpMath-Light", size: size)
+        let _ = try _font(withName: "KpMath-Sans", size: size)
+        let _ = try _font(withName: "xits-math", size: size)
+        let _ = try _font(withName: "texgyretermes-math", size: size)
+        nameToFontMap = _nameToFontMap
       }
-        
-      if f!.fontSize == size { return f }
-      else { return try f!.copy(withSize: size) }
+      catch let anyError
+      {
+        fatalError("Error: \(anyError)")
+      }
     }
     
-    public func latinModernFont(withSize size:CGFloat) throws -> MTFont? {
-      try MTFontManager.fontManager.font(withName: "latinmodern-math", size: size)
+  internal func font(withName name:String, size:CGFloat) throws -> MTFont? {
+    guard let f = nameToFontMap[name] else {
+      fatalError()
     }
+    if f.fontSize == size { return f }
+    return try f.copy(withSize: size)
+  }
     
-    public func kpMathLightFont(withSize size:CGFloat) throws -> MTFont? {
-      try MTFontManager.fontManager.font(withName: "KpMath-Light", size: size)
-    }
-    
-    public func kpMathSansFont(withSize size:CGFloat) throws -> MTFont? {
-      try MTFontManager.fontManager.font(withName: "KpMath-Sans", size: size)
-    }
-    
-    public func xitsFont(withSize size:CGFloat) throws -> MTFont? {
-      try MTFontManager.fontManager.font(withName: "xits-math", size: size)
-    }
-    
-    public func termesFont(withSize size:CGFloat) throws -> MTFont? {
-      try MTFontManager.fontManager.font(withName: "texgyretermes-math", size: size)
-    }
-    
+  public func latinModernFont(withSize size:CGFloat) throws -> MTFont? {
+    try MTFontManager.fontManager.font(withName: "latinmodern-math", size: size)
+  }
+  
+  public func kpMathLightFont(withSize size:CGFloat) throws -> MTFont? {
+    try MTFontManager.fontManager.font(withName: "KpMath-Light", size: size)
+  }
+  
+  public func kpMathSansFont(withSize size:CGFloat) throws -> MTFont? {
+    try MTFontManager.fontManager.font(withName: "KpMath-Sans", size: size)
+  }
+  
+  public func xitsFont(withSize size:CGFloat) throws -> MTFont? {
+    try MTFontManager.fontManager.font(withName: "xits-math", size: size)
+  }
+  
+  public func termesFont(withSize size:CGFloat) throws -> MTFont? {
+    try MTFontManager.fontManager.font(withName: "texgyretermes-math", size: size)
+  }
+  
     public var defaultFont: MTFont? {
       do {
         return try MTFontManager.fontManager.latinModernFont(withSize: kDefaultFontSize)

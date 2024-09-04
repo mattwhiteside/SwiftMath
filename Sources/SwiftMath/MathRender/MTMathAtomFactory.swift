@@ -9,7 +9,7 @@
 import Foundation
 
 /** A factory to create commonly used MTMathAtoms. */
-public class MTMathAtomFactory {
+public actor MTMathAtomFactory {
     
     public static let aliases = [
         "lnot" : "neg",
@@ -27,83 +27,74 @@ public class MTMathAtomFactory {
         "AA" : "angstrom"
     ]
     
-    public static let delimiters = [
-        "." : "", // . means no delimiter
-        "(" : "(",
-        ")" : ")",
-        "[" : "[",
-        "]" : "]",
-        "<" : "\u{2329}",
-        ">" : "\u{232A}",
-        "/" : "/",
-        "\\" : "\\",
-        "|" : "|",
-        "lgroup" : "\u{27EE}",
-        "rgroup" : "\u{27EF}",
-        "||" : "\u{2016}",
-        "Vert" : "\u{2016}",
-        "vert" : "|",
-        "uparrow" : "\u{2191}",
-        "downarrow" : "\u{2193}",
-        "updownarrow" : "\u{2195}",
-        "Uparrow" : "\u{21D1}",
-        "Downarrow" : "\u{21D3}",
-        "Updownarrow" : "\u{21D5}",
-        "backslash" : "\\",
-        "rangle" : "\u{232A}",
-        "langle" : "\u{2329}",
-        "rbrace" : "}",
-        "}" : "}",
-        "{" : "{",
-        "lbrace" : "{",
-        "lceil" : "\u{2308}",
-        "rceil" : "\u{2309}",
-        "lfloor" : "\u{230A}",
-        "rfloor" : "\u{230B}"
-    ]
-    
-    private static let delimValueLock = NSLock()
+  public static let delimiters = [
+      "." : "", // . means no delimiter
+      "(" : "(",
+      ")" : ")",
+      "[" : "[",
+      "]" : "]",
+      "<" : "\u{2329}",
+      ">" : "\u{232A}",
+      "/" : "/",
+      "\\" : "\\",
+      "|" : "|",
+      "lgroup" : "\u{27EE}",
+      "rgroup" : "\u{27EF}",
+      "||" : "\u{2016}",
+      "Vert" : "\u{2016}",
+      "vert" : "|",
+      "uparrow" : "\u{2191}",
+      "downarrow" : "\u{2193}",
+      "updownarrow" : "\u{2195}",
+      "Uparrow" : "\u{21D1}",
+      "Downarrow" : "\u{21D3}",
+      "Updownarrow" : "\u{21D5}",
+      "backslash" : "\\",
+      "rangle" : "\u{232A}",
+      "langle" : "\u{2329}",
+      "rbrace" : "}",
+      "}" : "}",
+      "{" : "{",
+      "lbrace" : "{",
+      "lceil" : "\u{2308}",
+      "rceil" : "\u{2309}",
+      "lfloor" : "\u{230A}",
+      "rfloor" : "\u{230B}"
+  ]
+      
   
-    static var _delimValueToName = [String: String]()
-  
-    public static var delimValueToName: [String: String] {
-      if _delimValueToName.isEmpty {
-        var output = [String: String]()
-        for (key, value) in Self.delimiters {
-          if let existingValue = output[value] {
-            if key.count > existingValue.count {
-              continue
-            } else if key.count == existingValue.count {
-              if key.compare(existingValue) == .orderedDescending {
-                continue
-              }
-            }
-          }
-          output[value] = key
-        }
-        delimValueLock.lock()
-        defer { delimValueLock.unlock() }
-        if _delimValueToName.isEmpty {
-          _delimValueToName = output
+  public static let delimValueToName: [String: String] = MTMathAtomFactory.delimiters.reduce(into: [:]){(output, keyValuePair) in
+    let key = keyValuePair.key
+    let value = keyValuePair.value
+    var skip = false
+    if let existingValue = output[value] {
+      if key.count > existingValue.count {
+        skip = true
+      } else if key.count == existingValue.count {
+        if key.compare(existingValue) == .orderedDescending {
+          skip = true
         }
       }
-      return _delimValueToName
     }
+    if !skip {
+      output[value] = key
+    }
+  }
     
-    public static let accents = [
-        "grave" :  "\u{0300}",
-        "acute" :  "\u{0301}",
-        "hat" :  "\u{0302}",  // In our implementation hat and widehat behave the same.
-        "tilde" :  "\u{0303}", // In our implementation tilde and widetilde behave the same.
-        "bar" :  "\u{0304}",
-        "breve" :  "\u{0306}",
-        "dot" :  "\u{0307}",
-        "ddot" :  "\u{0308}",
-        "check" :  "\u{030C}",
-        "vec" :  "\u{20D7}",
-        "widehat" :  "\u{0302}",
-        "widetilde" :  "\u{0303}"
-    ]
+  public static let accents = [
+      "grave" :  "\u{0300}",
+      "acute" :  "\u{0301}",
+      "hat" :  "\u{0302}",  // In our implementation hat and widehat behave the same.
+      "tilde" :  "\u{0303}", // In our implementation tilde and widetilde behave the same.
+      "bar" :  "\u{0304}",
+      "breve" :  "\u{0306}",
+      "dot" :  "\u{0307}",
+      "ddot" :  "\u{0308}",
+      "check" :  "\u{030C}",
+      "vec" :  "\u{20D7}",
+      "widehat" :  "\u{0302}",
+      "widetilde" :  "\u{0303}"
+  ]
     
     private static let accentValueLock = NSLock()
     static var _accentValueToName: [String: String]? = nil
