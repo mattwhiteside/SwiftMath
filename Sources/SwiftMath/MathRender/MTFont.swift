@@ -2,7 +2,6 @@
 import FoundationEssentials
 @preconcurrency import CoreText
 import Foundation.NSBundle
-import Foundation.NSDictionary
 
 //
 //  Created by Mike Griebling on 2022-12-31.
@@ -50,13 +49,13 @@ public struct MTFont: Sendable {
   let constantsTable: Dictionary<String, Int>
   let verticalVariantsTable: Dictionary<String, [String]>
   let horizontalVariantsTable: Dictionary<String, [String]>
-  let italicsTable: Dictionary<String, CGGlyph>
-  let accentsTable: Dictionary<String, CGGlyph>
+  let italicsTable: Dictionary<String, Int64>
+  let accentsTable: Dictionary<String, Int64>
   let assemblies: Dictionary<String, AssemblyInfo>
   
   let _unitsPerEm: UInt
   let _fontSize: CGFloat
-  
+  private let name:String
   /** MU unit in points */
   var muUnit:CGFloat { _fontSize/18 }
     
@@ -115,63 +114,61 @@ public struct MTFont: Sendable {
   var subSuperscriptGapMin:CGFloat { constantFromTable("SubSuperscriptGapMin")  }                          // 4 \xi_8 in TeX
   var superscriptBottomMaxWithSubscript:CGFloat { constantFromTable("SuperscriptBottomMaxWithSubscript")  }             // 4/5 \sigma_5 in TeX
 
-    var spaceAfterScript:CGFloat { constantFromTable("SpaceAfterScript")  }
+  var spaceAfterScript:CGFloat { constantFromTable("SpaceAfterScript")  }
 
-    // MARK: - radicals
-    var radicalExtraAscender:CGFloat { constantFromTable("RadicalExtraAscender")  }                          // \xi_8 in Tex
-    var radicalRuleThickness:CGFloat { constantFromTable("RadicalRuleThickness")  }                          // \xi_8 in Tex
-    var radicalDisplayStyleVerticalGap:CGFloat { constantFromTable("RadicalDisplayStyleVerticalGap")  }                // \xi_8 + 1/4 \sigma_5 in Tex
-    var radicalVerticalGap:CGFloat { constantFromTable("RadicalVerticalGap")  }                            // 5/4 \xi_8 in Tex
-    var radicalKernBeforeDegree:CGFloat { constantFromTable("RadicalKernBeforeDegree")  }                       // 5 mu in Tex
-    var radicalKernAfterDegree:CGFloat { constantFromTable("RadicalKernAfterDegree")  }                        // -10 mu in Tex
-    var radicalDegreeBottomRaisePercent:CGFloat { percentFromTable("RadicalDegreeBottomRaisePercent")  }               // 60% in Tex
+  // MARK: - radicals
+  var radicalExtraAscender:CGFloat { constantFromTable("RadicalExtraAscender")  }                          // \xi_8 in Tex
+  var radicalRuleThickness:CGFloat { constantFromTable("RadicalRuleThickness")  }                          // \xi_8 in Tex
+  var radicalDisplayStyleVerticalGap:CGFloat { constantFromTable("RadicalDisplayStyleVerticalGap")  }                // \xi_8 + 1/4 \sigma_5 in Tex
+  var radicalVerticalGap:CGFloat { constantFromTable("RadicalVerticalGap")  }                            // 5/4 \xi_8 in Tex
+  var radicalKernBeforeDegree:CGFloat { constantFromTable("RadicalKernBeforeDegree")  }                       // 5 mu in Tex
+  var radicalKernAfterDegree:CGFloat { constantFromTable("RadicalKernAfterDegree")  }                        // -10 mu in Tex
+  var radicalDegreeBottomRaisePercent:CGFloat { percentFromTable("RadicalDegreeBottomRaisePercent")  }               // 60% in Tex
 
-    // MARK: - Limits
-    var upperLimitBaselineRiseMin:CGFloat { constantFromTable("UpperLimitBaselineRiseMin")  }                     // \xi_11 in TeX
-    var upperLimitGapMin:CGFloat { constantFromTable("UpperLimitGapMin")  }                              // \xi_9 in TeX
-    var lowerLimitGapMin:CGFloat { constantFromTable("LowerLimitGapMin")  }                              // \xi_10 in TeX
-    var lowerLimitBaselineDropMin:CGFloat { constantFromTable("LowerLimitBaselineDropMin")  }                     // \xi_12 in TeX
-    var limitExtraAscenderDescender:CGFloat { 0 }                   // \xi_13 in TeX, not present in OpenType so we always set it to 0.
+  // MARK: - Limits
+  var upperLimitBaselineRiseMin:CGFloat { constantFromTable("UpperLimitBaselineRiseMin")  }                     // \xi_11 in TeX
+  var upperLimitGapMin:CGFloat { constantFromTable("UpperLimitGapMin")  }                              // \xi_9 in TeX
+  var lowerLimitGapMin:CGFloat { constantFromTable("LowerLimitGapMin")  }                              // \xi_10 in TeX
+  var lowerLimitBaselineDropMin:CGFloat { constantFromTable("LowerLimitBaselineDropMin")  }                     // \xi_12 in TeX
+  var limitExtraAscenderDescender:CGFloat { 0 }                   // \xi_13 in TeX, not present in OpenType so we always set it to 0.
 
-    // MARK: - Underline
-    var underbarVerticalGap:CGFloat { constantFromTable("UnderbarVerticalGap")  }                           // 3 \xi_8 in TeX
-    var underbarRuleThickness:CGFloat { constantFromTable("UnderbarRuleThickness")  }                         // \xi_8 in TeX
-    var underbarExtraDescender:CGFloat { constantFromTable("UnderbarExtraDescender")  }                        // \xi_8 in TeX
+  // MARK: - Underline
+  var underbarVerticalGap:CGFloat { constantFromTable("UnderbarVerticalGap")  }                           // 3 \xi_8 in TeX
+  var underbarRuleThickness:CGFloat { constantFromTable("UnderbarRuleThickness")  }                         // \xi_8 in TeX
+  var underbarExtraDescender:CGFloat { constantFromTable("UnderbarExtraDescender")  }                        // \xi_8 in TeX
 
-    // MARK: - Overline
-    var overbarVerticalGap:CGFloat { constantFromTable("OverbarVerticalGap")  }                            // 3 \xi_8 in TeX
-    var overbarRuleThickness:CGFloat { constantFromTable("OverbarRuleThickness")  }                          // \xi_8 in TeX
-    var overbarExtraAscender:CGFloat { constantFromTable("OverbarExtraAscender")  }                          // \xi_8 in TeX
+  // MARK: - Overline
+  var overbarVerticalGap:CGFloat { constantFromTable("OverbarVerticalGap")  }                            // 3 \xi_8 in TeX
+  var overbarRuleThickness:CGFloat { constantFromTable("OverbarRuleThickness")  }                          // \xi_8 in TeX
+  var overbarExtraAscender:CGFloat { constantFromTable("OverbarExtraAscender")  }                          // \xi_8 in TeX
 
-    // MARK: - Constants
+  // MARK: - Constants
 
-    var axisHeight:CGFloat { constantFromTable("AxisHeight")  }                                    // \sigma_22 in TeX
-    var scriptScaleDown:CGFloat { percentFromTable("ScriptPercentScaleDown")  }
-    var scriptScriptScaleDown:CGFloat { percentFromTable("ScriptScriptPercentScaleDown")  }
-    var mathLeading:CGFloat { constantFromTable("MathLeading")  }
-    var delimitedSubFormulaMinHeight:CGFloat { constantFromTable("DelimitedSubFormulaMinHeight")  }
+  var axisHeight:CGFloat { constantFromTable("AxisHeight")  }                                    // \sigma_22 in TeX
+  var scriptScaleDown:CGFloat { percentFromTable("ScriptPercentScaleDown")  }
+  var scriptScriptScaleDown:CGFloat { percentFromTable("ScriptScriptPercentScaleDown")  }
+  var mathLeading:CGFloat { constantFromTable("MathLeading")  }
+  var delimitedSubFormulaMinHeight:CGFloat { constantFromTable("DelimitedSubFormulaMinHeight")  }
 
-    // MARK: - Accent
+  // MARK: - Accent
 
-    var accentBaseHeight:CGFloat { constantFromTable("AccentBaseHeight")  } // \fontdimen5 in TeX (x-height)
-    var flattenedAccentBaseHeight:CGFloat { constantFromTable("FlattenedAccentBaseHeight")  }
+  var accentBaseHeight:CGFloat { constantFromTable("AccentBaseHeight")  } // \fontdimen5 in TeX (x-height)
+  var flattenedAccentBaseHeight:CGFloat { constantFromTable("FlattenedAccentBaseHeight")  }
     
 
   /// `MTFont(fontWithName:)` does not load the complete math font, it only has about half the glyphs of the full math font.
   /// In particular it does not have the math italic characters which breaks our variable rendering.
   /// So we first load a CGFont from the file and then convert it to a CTFont.
   init(name: String, size:CGFloat) throws {
-    defaultCGFont = CGFont(CGDataProvider(filename:MTFont.fontBundle.path(forResource: name, ofType: "otf")!)!)!
+    self.name = name
     //print("Loading font \(name)")
     let bundle = MTFont.fontBundle
     //print("Num glyphs: \(self.defaultCGFont.numberOfGlyphs)")
     
     self.ctFont = CTFontCreateWithGraphicsFont(self.defaultCGFont, size, nil, nil);
     
-    //print("Loading associated .plist")
     let mathTablePlist = bundle.url(forResource:name, withExtension:"plist")
     let rawMathTable = NSDictionary(contentsOf: mathTablePlist!) as? Dictionary<String, Any> ?? Dictionary<String,Any>()
-    //self.mathTable = try MTFontMathTable(withFont:self, mathTable:rawMathTable)
     _unitsPerEm = UInt(CTFontGetUnitsPerEm(ctFont))
     _fontSize = size
     let version = rawMathTable["version"] as! String
@@ -182,9 +179,30 @@ public struct MTFont: Sendable {
     constantsTable = rawMathTable["constants"] as! Dictionary<String, Int>
     verticalVariantsTable = rawMathTable["v_variants"] as! Dictionary<String, [String]>
     horizontalVariantsTable = rawMathTable["h_variants"] as! Dictionary<String, [String]>
-    italicsTable = rawMathTable["italic"] as! Dictionary<String, CGGlyph>
-    accentsTable = rawMathTable["accents"] as! Dictionary<String, CGGlyph>
-    assemblies = rawMathTable["v_assembly"] as! Dictionary<String, AssemblyInfo>
+    italicsTable = rawMathTable["italic"] as! Dictionary<String, Int64>
+    accentsTable = rawMathTable["accents"] as! Dictionary<String, Int64>
+    
+    let _assemblies = (rawMathTable["v_assembly"] as! Dictionary<String, Dictionary<String, Any>>)
+    assemblies = _assemblies.reduce(into: [String:AssemblyInfo]()){ (accumulatedOutput, pair) in
+      if let value = pair.value["parts"] as? Array<Any>, let italic = pair.value["italic"] as? Int {
+        let parts = value.map{(a:Any) -> Assembly in
+          if let d = a as? Dictionary<String, Any> {
+            return Assembly(
+              startConnector: d["startConnector"] as! Int,
+              extender: d["extender"] as! Bool,
+              glyphName: d["glyph"] as! String,
+              advance: d["advance"] as! Int,
+              endConnector: d["endConnector"] as! Int
+            )
+          }
+          fatalError()
+        }
+        accumulatedOutput[pair.key] = AssemblyInfo(name: pair.key, italic: italic, parts: parts)
+      }
+      else {
+        fatalError()
+      }
+    }
   }
   
   static var fontBundle:Foundation.Bundle {
@@ -194,7 +212,7 @@ public struct MTFont: Sendable {
   
   /** Returns a copy of this font but with a different size. */
   public func copy(withSize size: CGFloat) throws -> MTFont {
-    return try MTFont(name:self.defaultCGFont.fullName! as String, size:size)
+    return try MTFont(name:self.name, size:size)
   }
   
   func get(nameForGlyph glyph:CGGlyph) -> String {

@@ -56,14 +56,14 @@ public class MTMathUILabel : MTView {
      is preferred to use `latex`.
      */
     public var mathList:MTMathList? {
-        set {
-            _mathList = newValue
-            _error = nil
-            _latex = MTMathListBuilder.mathListToString(newValue)
-            self.invalidateIntrinsicContentSize()
-            self.setNeedsLayout()
-        }
-        get { _mathList }
+      set {
+        _mathList = newValue
+        _error = nil
+        _latex = MTMathListBuilder.mathListToString(newValue)
+        self.invalidateIntrinsicContentSize()
+        self.setNeedsLayout()
+      }
+      get { _mathList }
     }
     private var _mathList:MTMathList?
     

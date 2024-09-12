@@ -49,20 +49,15 @@ public struct MathView : View {
 
   public init(latexExpr: String, fontSize:Double) {
     self.fontSize = CGFloat(fontSize)
-    do {
-      if let __font = try MTFontManager().termesFont(withSize: fontSize) {
-        font = __font
-      } else {
-        font = MTFontManager.fontManager.defaultFont!
-      }
-      //self.textColor = .textColor
-      textAlignment = .center
-      contentInsets = MTEdgeInsetsZero
-      latex = latexExpr//this should go last
+    if let __font = try? MTFontManager.fontManager.termesFont(withSize: fontSize) {
+      font = __font
+    } else {
+      font = MTFontManager.fontManager.defaultFont!
     }
-    catch let anyError {
-      fatalError("Error: \(anyError)")
-    }
+    //self.textColor = .textColor
+    textAlignment = .center
+    contentInsets = MTEdgeInsetsZero
+    latex = latexExpr//this should go last
   }
     
   public var body: some View {

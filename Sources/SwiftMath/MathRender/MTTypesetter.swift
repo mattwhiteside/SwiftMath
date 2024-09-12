@@ -63,7 +63,7 @@ func getInterElementSpaces() -> [[InterElementSpaceType]] {
 
 
 // Gets the index for the given type. If row is true, the index is for the row (i.e. left element) otherwise it is for the column (right element)
-func getInterElementSpaceArrayIndexForType(_ type:MTMathAtomType, row:Bool) -> Int {
+func getInterElementSpaceArrayIndexForType(_ type:MT.AtomType, row:Bool) -> Int {
     switch type {
         case .color, .textcolor, .colorBox, .ordinary, .placeholder:   // A placeholder is treated as ordinary
             return 0
@@ -357,7 +357,7 @@ struct MTTypesetter {
   var displayAtoms = [any MT.Display]()
   var currentPosition = CGPoint.zero
   var currentLine:FoundationEssentials.AttributedString!
-  var currentAtoms = [MTMathAtom]()   // List of atoms that make the line
+  var currentAtoms = [MT.MathAtom]()   // List of atoms that make the line
   var currentLineIndexRange = __NSRange(location:0, length: 0)
   var style:MTLineStyle {
     didSet {
@@ -410,7 +410,7 @@ struct MTTypesetter {
       self.cramped = cramped
       self.spaced = spaced
       self.currentLine = AttributedString()
-      self.currentAtoms = [MTMathAtom]()
+      self.currentAtoms = [MT.MathAtom]()
       do {
         self._styleFont = try font!.copy(withSize: Self.getStyleSize(style, font: font))
       }
@@ -421,32 +421,31 @@ struct MTTypesetter {
       self.currentLineIndexRange = __NSRange(location:Int.max, length:Int.max)
     }
     
-    static func preprocessMathList(_ ml:MTMathList?) -> [MTMathAtom] {
+    static func preprocessMathList(_ ml:MTMathList?) -> [MT.MathAtom] {
         // Note: Some of the preprocessing described by the TeX algorithm is done in the finalize method of MTMathList.
         // Specifically rules 5 & 6 in Appendix G are handled by finalize.
         // This function does not do a complete preprocessing as specified by TeX either. It removes any special atom types
         // that are not included in TeX and applies Rule 14 to merge ordinary characters.
-        var preprocessed = [MTMathAtom]() //  arrayWithCapacity:ml.atoms.count)
-        var prevNode:MTMathAtom! = nil
+        var preprocessed = [MT.MathAtom]() //  arrayWithCapacity:ml.atoms.count)
+        var prevNode:MT.MathAtom! = nil
         preprocessed.reserveCapacity(ml!.atoms.count)
-        for atom in ml!.atoms {
+        for var atom in ml!.atoms {
             if atom.type == .variable || atom.type == .number {
                 // This is not a TeX type node. TeX does this during parsing the input.
                 // switch to using the italic math font
                 // We convert it to ordinary
-                let newFont = changeFont(atom.nucleus, fontStyle: atom.fontStyle) // mathItalicize(atom.nucleus)
-                atom.type = .ordinary
-                atom.nucleus = newFont
+              let newFont = changeFont(atom.nucleus, fontStyle: atom.fontStyle) // mathItalicize(atom.nucleus)
+              atom = MT.GenericMathAtom(type:.ordinary, value: newFont)
             } else if atom.type == .unaryOperator {
                 // Neither of these are TeX nodes. TeX treats these as Ordinary. So will we.
-                atom.type = .ordinary
+              atom = MT.GenericMathAtom(type:.ordinary)
             }
             
             if atom.type == .ordinary {
                 // This is Rule 14 to merge ordinary characters.
                 // combine ordinary atoms together
                 if prevNode != nil && prevNode.type == .ordinary && prevNode.subScript == nil && prevNode.superScript == nil {
-                    prevNode.fuse(with: atom)
+                    prevNode.fused(with: atom)
                     // skip the current node, we are done here.
                     continue
                 }
@@ -472,7 +471,7 @@ struct MTTypesetter {
     }
   }
     
-  mutating func addInterElementSpace(_ prevNode:MTMathAtom?, currentType type:MTMathAtomType) {
+  mutating func addInterElementSpace(_ prevNode:MT.MathAtom?, currentType type:MT.AtomType) {
     var interElementSpace = CGFloat(0)
     if prevNode != nil {
       interElementSpace = getInterElementSpace(prevNode!.type, right:type)
@@ -483,12 +482,12 @@ struct MTTypesetter {
     self.currentPosition.x += interElementSpace
   }
     
-  mutating func createDisplayAtoms(_ preprocessed:[MTMathAtom]) throws {
+  mutating func createDisplayAtoms(_ preprocessed:[MT.MathAtom]) throws {
     // items should contain all the nodes that need to be layed out.
     // convert to a list of DisplayAtoms
-    var prevNode:MTMathAtom? = nil
-    var lastType:MTMathAtomType!
-    for atom in preprocessed {
+    var prevNode:MT.MathAtom? = nil
+    var lastType:MT.AtomType!
+    for var atom in preprocessed {
       switch atom.type {
       case .number, .variable,. unaryOperator:
         // These should never appear as they should have been removed by preprocessing
@@ -500,7 +499,7 @@ struct MTTypesetter {
         if currentLine.characters.count > 0 {
           self.addDisplayLine()
         }
-        let space = atom as! MTMathSpace
+        let space = atom as! MT.MathSpace
         // add the desired space
         currentPosition.x += space.space * styleFont.muUnit;
         // Since this is extra space, the desired interelement space between the prevAtom
@@ -512,7 +511,7 @@ struct MTTypesetter {
         if currentLine.characters.count > 0 {
           self.addDisplayLine()
         }
-        let style = atom as! MTMathStyle
+        let style = atom as! MT.MathStyle
         self.style = style.style
         // We need to preserve the prevNode for any interelement space changes.
         // so we skip to the next node.
@@ -522,7 +521,7 @@ struct MTTypesetter {
         if currentLine.characters.count > 0 {
           self.addDisplayLine()
         }
-        let colorAtom = atom as! MTMathColor
+        let colorAtom = atom as! MT.MathColor
         var display = try MTTypesetter.createLineForMathList(colorAtom.innerList, font: font, style: style)
         display!.localTextColor = MTColor(fromHexString: colorAtom.colorString)
         display!.position = currentPosition
@@ -534,7 +533,7 @@ struct MTTypesetter {
         if currentLine.characters.count > 0 {
           self.addDisplayLine()
         }
-        let colorAtom = atom as! MTMathTextColor
+        let colorAtom = atom as! MT.MathTextColor
         var display = try MTTypesetter.createLineForMathList(colorAtom.innerList, font: font, style: style)
         display!.localTextColor = MTColor(fromHexString: colorAtom.colorString)
         if prevNode != nil {
@@ -544,14 +543,7 @@ struct MTTypesetter {
           if currentLine.characters.count > 0 {
             if interElementSpace > 0 {
               // add a kerning of that space to the previous character
-              //              currentLine.addAttribute(kCTKernAttributeName as NSAttributedString.Key,
-              //                                                   value:NSNumber(floatLiteral: interElementSpace),
-              //                                                   range:currentLine.mutableString.rangeOfComposedCharacterSequence(at: currentLine.length-1))
-//              currentLine[currentLine.characters.startIndex ... currentLine.characters.endIndex].setAttributes(
-//                FoundationEssentials.AttributeContainer().kerning(interElementSpace)
-//              )
               let range = currentLine.characters.startIndex ... currentLine.characters.endIndex
-              //currentLine[range].languageIdentifier = "homer"
               currentLine[range].kerning = Double(interElementSpace)
             } else {
               // increase the space
@@ -568,7 +560,7 @@ struct MTTypesetter {
         if currentLine.characters.count > 0 {
             self.addDisplayLine()
         }
-        let colorboxAtom =  atom as! MTMathColorbox
+        let colorboxAtom =  atom as! MT.MathColorbox
         var display = try MTTypesetter.createLineForMathList(colorboxAtom.innerList, font:font, style:style)
         
         display!.localBackgroundColor = MTColor(fromHexString: colorboxAtom.colorString)
@@ -581,7 +573,7 @@ struct MTTypesetter {
         if currentLine.characters.count > 0 {
           self.addDisplayLine()
         }
-        let rad = atom as! MTRadical
+        let rad = atom as! MT.Radical
         // Radicals are considered as Ord in rule 16.
         self.addInterElementSpace(prevNode, currentType:.ordinary)
         var displayRad = try self.makeRadical(rad)
@@ -607,7 +599,7 @@ struct MTTypesetter {
         if currentLine.characters.count > 0 {
           self.addDisplayLine()
         }
-        let frac = atom as! MTFraction?
+        let frac = atom as! MT.Fraction?
         self.addInterElementSpace(prevNode, currentType:atom.type)
         var display = try self.makeFraction(frac)
         displayAtoms.append(display!)
@@ -623,7 +615,7 @@ struct MTTypesetter {
           self.addDisplayLine()
         }
         self.addInterElementSpace(prevNode, currentType:atom.type)
-        let op = atom as! MTLargeOperator?
+        let op = atom as! MT.LargeOperator?
         let display = try self.makeLargeOp(op)
         displayAtoms.append(display!)
                   
@@ -633,7 +625,7 @@ struct MTTypesetter {
             self.addDisplayLine()
         }
         self.addInterElementSpace(prevNode, currentType:atom.type)
-        let inner =  atom as! MTInner?
+        let inner =  atom as! MT.Inner?
         var display:(any MT.Display)?
         if inner!.leftBoundary != nil || inner!.rightBoundary != nil {
           display = try self.makeLeftRight(inner)
@@ -657,7 +649,7 @@ struct MTTypesetter {
         self.addInterElementSpace(prevNode, currentType:.ordinary)
         atom.type = .ordinary;
         
-        let under = atom as! MTUnderLine?
+        let under = atom as! MT.UnderLine?
         var display = try self.makeUnderline(under)
         displayAtoms.append(display!)
         currentPosition.x += display!.width;
@@ -675,7 +667,7 @@ struct MTTypesetter {
         self.addInterElementSpace(prevNode, currentType:.ordinary)
         atom.type = .ordinary;
         
-        let over = atom as! MTOverLine?
+        let over = atom as! MT.OverLine?
         var display = try self.makeOverline(over)
         displayAtoms.append(display!)
         currentPosition.x += display!.width;
@@ -693,7 +685,7 @@ struct MTTypesetter {
         self.addInterElementSpace(prevNode, currentType:.ordinary)
         atom.type = .ordinary;
         
-        let accent = atom as! MTAccent?
+        let accent = atom as! MT.Accent?
         var display = try self.makeAccent(accent)
         displayAtoms.append(display!)
         currentPosition.x += display!.width;
@@ -712,7 +704,7 @@ struct MTTypesetter {
         self.addInterElementSpace(prevNode, currentType:.inner)
         atom.type = .inner;
         
-        let table = atom as! MTMathTable?
+        let table = atom as! MT.MathTable?
         let display = try self.makeTable(table)
         displayAtoms.append(display!)
         currentPosition.x += display!.width
@@ -737,9 +729,10 @@ struct MTTypesetter {
         }
         var current:FoundationEssentials.AttributedString? = nil
         if atom.type == .placeholder {
-          let color = MTTypesetter.placeholderColor
-          current = AttributedString(atom.nucleus,
-                                     attributes:FoundationEssentials.AttributeContainer().foregroundColor(color.cgColor))
+          //let color = MTTypesetter.placeholderColor
+          fatalError()
+//          current = AttributedString(atom.nucleus,
+//                                     attributes:FoundationEssentials.AttributeContainer().foregroundColor(color.cgColor))
         } else {
           current = AttributedString(atom.nucleus)
         }
@@ -798,7 +791,7 @@ struct MTTypesetter {
     @discardableResult
     mutating func addDisplayLine() -> MT.CTLineDisplay? {
       // add the font
-      currentLine[currentLine.characters.startIndex..<currentLine.characters.endIndex].font = styleFont.ctFont
+      //currentLine[currentLine.characters.startIndex..<currentLine.characters.endIndex].font = styleFont.ctFont
 
       /*assert(currentLineIndexRange.length == numCodePoints(currentLine.string),
        "The length of the current line: %@ does not match the length of the range (%d, %d)",
@@ -815,7 +808,7 @@ struct MTTypesetter {
       currentPosition.x += displayAtom.width;
       // clear the string and the range
       currentLine = AttributedString()
-      currentAtoms = [MTMathAtom]()
+      currentAtoms = [MT.MathAtom]()
       currentLineIndexRange = __NSRange(location:Int.max, length:Int.max)
       return displayAtom
     }
@@ -835,7 +828,7 @@ struct MTTypesetter {
         }
     }
     
-  mutating func getInterElementSpace(_ left: MTMathAtomType, right:MTMathAtomType) -> CGFloat {
+  mutating func getInterElementSpace(_ left: MT.AtomType, right:MT.AtomType) -> CGFloat {
         let leftIndex = getInterElementSpaceArrayIndexForType(left, row: true)
         let rightIndex = getInterElementSpaceArrayIndexForType(right, row: false)
         let spaceArray = getInterElementSpaces()[Int(leftIndex)]
@@ -877,7 +870,7 @@ struct MTTypesetter {
     
     // make scripts for the last atom
     // index is the index of the element which is getting the sub/super scripts.
-  mutating func makeScripts(_ atom: MTMathAtom?, display:(any MT.Display)?, index:UInt, delta:CGFloat) throws -> any MT.Display {
+  mutating func makeScripts(_ atom: MT.MathAtom?, display:(any MT.Display)?, index:UInt, delta:CGFloat) throws -> any MT.Display {
       assert(atom!.subScript != nil || atom!.superScript != nil)
       var returnDisplay = display
       var superScriptShiftUp = 0.0
@@ -1022,7 +1015,7 @@ struct MTTypesetter {
         return style.inc()
     }
     
-    func makeFraction(_ frac:MTFraction?) throws -> (any MT.Display)? {
+    func makeFraction(_ frac:MT.Fraction?) throws -> (any MT.Display)? {
         // lay out the parts of the fraction
         let fractionStyle = self.fractionStyle;
         let numeratorDisplay = try MTTypesetter.createLineForMathList(frac!.numerator, font:font, style:fractionStyle(), cramped:false)
@@ -1079,7 +1072,7 @@ struct MTTypesetter {
         }
     }
     
-  func addDelimitersToFractionDisplay(_ _display:MT.FractionDisplay?, forFraction frac:MTFraction?) -> (some MT.Display)? {
+  func addDelimitersToFractionDisplay(_ _display:MT.FractionDisplay?, forFraction frac:MT.Fraction?) -> (some MT.Display)? {
         assert(!frac!.leftDelimiter.isEmpty || !frac!.rightDelimiter.isEmpty, "Fraction should have a delimiters to call this function");
         var display = _display
         var innerElements = [any MT.Display]()
@@ -1139,7 +1132,7 @@ struct MTTypesetter {
         return glyphDisplay;
     }
     
-  mutating func makeRadical(_ rad:MTRadical) throws -> MT.RadicalDisplay? {
+  mutating func makeRadical(_ rad:MT.Radical) throws -> MT.RadicalDisplay? {
         guard let radicand = rad.radicand else {
           return nil
         }
@@ -1319,7 +1312,7 @@ struct MTTypesetter {
     
     // MARK: - Large Operators
     
-    mutating func makeLargeOp(_ op:MTLargeOperator!) throws -> (any MT.Display)?  {
+  mutating func makeLargeOp(_ op:MT.LargeOperator!) throws -> (any MT.Display)?  {
       let limits = op.limits && style == .display
       var delta = CGFloat(0)
       if op.nucleus.count == 1 {
@@ -1351,15 +1344,16 @@ struct MTTypesetter {
         return try self.addLimitsToDisplay(glyphDisplay, forOperator:op, delta:delta)
       } else {
           // Create a regular node
-        var line = FoundationEssentials.AttributedString(op.nucleus)
+        //var line = FoundationEssentials.AttributedString(op.nucleus)
           // add the font
-        line[line.characters.startIndex...line.characters.endIndex].font = styleFont.ctFont
-        let displayAtom:any MT.Display = MT.CTLineDisplay(withString: line, position: currentPosition, range: op.indexRange, font: styleFont, atoms: [op])
-        return try self.addLimitsToDisplay(displayAtom, forOperator:op, delta:0)
+        fatalError()
+        //line[line.characters.startIndex...line.characters.endIndex].font = styleFont.ctFont
+        //let displayAtom:any MT.Display = MT.CTLineDisplay(withString: line, position: currentPosition, range: op.indexRange, font: styleFont, atoms: [op])
+        //return try self.addLimitsToDisplay(displayAtom, forOperator:op, delta:0)
       }
     }
     
-    mutating func addLimitsToDisplay(_ display:any MT.Display, forOperator op:MTLargeOperator, delta:CGFloat) throws -> any MT.Display {
+  mutating func addLimitsToDisplay(_ display:any MT.Display, forOperator op:MT.LargeOperator, delta:CGFloat) throws -> any MT.Display {
       // If there is no subscript or superscript, just return the current display
       if op.subScript == nil && op.superScript == nil {
         currentPosition.x += display.width
@@ -1402,7 +1396,7 @@ struct MTTypesetter {
     static let kDelimiterFactor = CGFloat(901)
     static let kDelimiterShortfallPoints = CGFloat(5)
     
-    func makeLeftRight(_ inner: MTInner?) throws -> (any MT.Display)? {
+  func makeLeftRight(_ inner: MT.Inner?) throws -> (any MT.Display)? {
         assert(inner!.leftBoundary != nil || inner!.rightBoundary != nil, "Inner should have a boundary to call this function");
         
         var innerListDisplay = try MTTypesetter.createLineForMathList(inner!.innerList, font:font, style:style, cramped:cramped, spaced:true)
@@ -1465,7 +1459,7 @@ struct MTTypesetter {
     
     // MARK: - Underline/Overline
     
-    func makeUnderline(_ under:MTUnderLine?) throws -> (any MT.Display)? {
+  func makeUnderline(_ under:MT.UnderLine?) throws -> (any MT.Display)? {
       let innerListDisplay = try MTTypesetter.createLineForMathList(under!.innerList, font:font, style:style, cramped:cramped)
       var underDisplay = MT.LineDisplay(withInner: innerListDisplay, position: currentPosition, range: under!.indexRange)
       // Move the line down by the vertical gap.
@@ -1477,7 +1471,7 @@ struct MTTypesetter {
       return underDisplay
     }
     
-    func makeOverline(_ over:MTOverLine?) throws -> (any MT.Display)? {
+  func makeOverline(_ over:MT.OverLine?) throws -> (any MT.Display)? {
         let innerListDisplay = try MTTypesetter.createLineForMathList(over!.innerList, font:font, style:style, cramped:true)
       var overDisplay = MT.LineDisplay(withInner:innerListDisplay, position:currentPosition, range:over!.indexRange)
         overDisplay.lineShiftUp = innerListDisplay!.ascent + styleFont.overbarVerticalGap;
@@ -1490,7 +1484,7 @@ struct MTTypesetter {
     
     // MARK: - Accents
     
-    func isSingleCharAccentee(_ accent:MTAccent?) -> Bool {
+  func isSingleCharAccentee(_ accent:MT.Accent?) -> Bool {
         guard let accent = accent else { return false }
         if accent.innerList!.atoms.count != 1 {
             // Not a single char list.
@@ -1508,7 +1502,7 @@ struct MTTypesetter {
     }
     
     // The distance the accent must be moved from the beginning.
-    func getSkew(_ accent: MTAccent?, accenteeWidth width:CGFloat, accentGlyph:CGGlyph) -> CGFloat {
+  func getSkew(_ accent: MT.Accent?, accenteeWidth width:CGFloat, accentGlyph:CGGlyph) -> CGFloat {
         guard let accent = accent else { return 0 }
         if accent.nucleus.isEmpty {
             // No accent
@@ -1562,7 +1556,8 @@ struct MTTypesetter {
       return curGlyph;
     }
     
-    func makeAccent(_ accent:MTAccent?) throws -> (any MT.Display)? {
+  func makeAccent(_ _accent:MT.Accent?) throws -> (any MT.Display)? {
+      var accent = _accent
       var accentee = try MTTypesetter.createLineForMathList(accent!.innerList, font:font, style:style, cramped:true)
       if accent!.nucleus.isEmpty {
         // no accent!
@@ -1585,7 +1580,7 @@ struct MTTypesetter {
 
       if self.isSingleCharAccentee(accent) && (accent!.subScript != nil || accent!.superScript != nil) {
         // Attach the super/subscripts to the accentee instead of the accent.
-        let innerAtom = accent!.innerList!.atoms[0]
+        var innerAtom = accent!.innerList!.atoms[0]
         innerAtom.superScript = accent!.superScript;
         innerAtom.subScript = accent!.subScript;
         accent?.superScript = nil;
@@ -1613,7 +1608,7 @@ struct MTTypesetter {
     let kLineSkipLimitMultiplier = CGFloat(0)
     let kJotMultiplier = CGFloat(0.3) // A jot is 3pt for a 10pt font.
     
-    func makeTable(_ table:MTMathTable?) throws -> (any MT.Display)? {
+  func makeTable(_ table:MT.MathTable?) throws -> (any MT.Display)? {
         let numColumns = table!.numColumns;
         if numColumns == 0 || table!.numRows == 0 {
             // Empty table
@@ -1638,7 +1633,7 @@ struct MTTypesetter {
     }
     
     // Typeset every cell in the table. As a side-effect calculate the max column width of each column.
-    func typesetCells(_ table:MTMathTable?, columnWidths: inout [CGFloat]) throws -> [[any MT.Display]] {
+  func typesetCells(_ table:MT.MathTable?, columnWidths: inout [CGFloat]) throws -> [[any MT.Display]] {
       var displays = [[any MT.Display]]()
         for row in table!.cells {
           var colDisplays = [any MT.Display]()
@@ -1652,7 +1647,7 @@ struct MTTypesetter {
         return displays
     }
     
-    func makeRowWithColumns(_ cols:[any MT.Display], forTable table:MTMathTable?, columnWidths:[CGFloat]) -> MT.MathListDisplay? {
+  func makeRowWithColumns(_ cols:[any MT.Display], forTable table:MT.MathTable?, columnWidths:[CGFloat]) -> MT.MathListDisplay? {
       var columnStart = CGFloat(0)
       var rowRange = __NSRange(location:NSNotFound, length:0);
       for i in 0..<cols.count {
@@ -1684,7 +1679,7 @@ struct MTTypesetter {
       return rowDisplay
     }
     
-    func positionRows(_ rows:inout [any MT.Display], forTable table:MTMathTable?) {
+  func positionRows(_ rows:inout [any MT.Display], forTable table:MT.MathTable?) {
         // Position the rows
         // We will first position the rows starting from 0 and then in the second pass center the whole table vertically.
         var currPos = CGFloat(0)

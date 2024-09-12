@@ -23,7 +23,7 @@ public final class MTFontManager:Sendable {
 
     let nameToFontMap: [String: MTFont]
 
-    public init() {
+    private init() {
       do {
         let size = kDefaultFontSize
         var _nameToFontMap = [String: MTFont]()
