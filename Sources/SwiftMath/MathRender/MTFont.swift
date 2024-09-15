@@ -241,89 +241,89 @@ public struct MTFont: Sendable {
     return CGFloat(val!) / 100
   }
 
-    /** Returns an Array of all the vertical variants of the glyph if any. If
-     there are no variants for the glyph, the array contains the given glyph. */
-    func getVerticalVariantsForGlyph( _ glyph:CGGlyph) -> [CGGlyph] {
-      return self.getVariantsForGlyph(glyph, in: verticalVariantsTable)
+  /** Returns an Array of all the vertical variants of the glyph if any. If
+   there are no variants for the glyph, the array contains the given glyph. */
+  func getVerticalVariantsForGlyph( _ glyph:CGGlyph) -> [CGGlyph] {
+    return self.getVariantsForGlyph(glyph, in: verticalVariantsTable)
+  }
+
+  /** Returns an Array of all the horizontal variants of the glyph if any. If
+   there are no variants for the glyph, the array contains the given glyph. */
+  func getHorizontalVariantsForGlyph( _ glyph:CGGlyph) -> [CGGlyph] {
+    return self.getVariantsForGlyph(glyph, in:horizontalVariantsTable)
+  }
+  
+  func getVariantsForGlyph(_ glyph: CGGlyph, in variants:Dictionary<String, Any>) -> [CGGlyph] {
+    let glyphName = get(nameForGlyph: glyph)
+    guard let variantGlyphs = variants[glyphName] as? Array<String>, variantGlyphs.count > 0 else {
+      // There are no extra variants, so just add the current glyph to it.
+      let glyph = get(glyphWithName: glyphName)
+      return [glyph]
     }
 
-    /** Returns an Array of all the horizontal variants of the glyph if any. If
-     there are no variants for the glyph, the array contains the given glyph. */
-    func getHorizontalVariantsForGlyph( _ glyph:CGGlyph) -> [CGGlyph] {
-      return self.getVariantsForGlyph(glyph, in:horizontalVariantsTable)
+    return variantGlyphs.map{
+      get(glyphWithName: $0)
     }
-    
-    func getVariantsForGlyph(_ glyph: CGGlyph, in variants:Dictionary<String, Any>) -> [CGGlyph] {
-      let glyphName = get(nameForGlyph: glyph)
-      guard let variantGlyphs = variants[glyphName] as? Array<String>, variantGlyphs.count > 0 else {
-        // There are no extra variants, so just add the current glyph to it.
-        let glyph = get(glyphWithName: glyphName)
-        return [glyph]
-      }
+  }
 
-      return variantGlyphs.map{
-        get(glyphWithName: $0)
-      }
-    }
-
-    /** Returns a larger vertical variant of the given glyph if any.
-     If there is no larger version, this returns the current glyph.
-     */
-    func getLargerGlyph(_ glyph:CGGlyph) -> CGGlyph {
-      let glyphName = get(nameForGlyph: glyph)
-      guard let variantGlyphs = verticalVariantsTable[glyphName], variantGlyphs.count > 0 else {
-        return glyph
-      }
-      
-      // Find the first variant with a different name.
-      for gvn in variantGlyphs {
-        if gvn != glyphName {
-          let variantGlyph = get(glyphWithName: gvn)
-          return variantGlyph
-        }
-      }
-      // We did not find any variants of this glyph so return it.
+  /** Returns a larger vertical variant of the given glyph if any.
+   If there is no larger version, this returns the current glyph.
+   */
+  func getLargerGlyph(_ glyph:CGGlyph) -> CGGlyph {
+    let glyphName = get(nameForGlyph: glyph)
+    guard let variantGlyphs = verticalVariantsTable[glyphName], variantGlyphs.count > 0 else {
       return glyph
     }
-
-    // MARK: - Italic Correction
     
-
-    /** Returns the italic correction for the given glyph if any. If there
-     isn't any this returns 0. */
-    func getItalicCorrection(_ glyph: CGGlyph) -> CGFloat {
-      let glyphName = get(nameForGlyph: glyph)
-      if let val = italicsTable[glyphName] {
-        return self.fontUnitsToPt(Int(val))
-      }
-      return self.fontUnitsToPt(0)
-    }
-
-    // MARK: - Accents
-    
-
-    /** Returns the adjustment to the top accent for the given glyph if any.
-     If there isn't any this returns -1. */
-    func getTopAccentAdjustment(_ glyph: CGGlyph) -> CGFloat {
-      let glyphName = get(nameForGlyph: glyph)
-      if let val = accentsTable[glyphName]
-      {
-        return self.fontUnitsToPt(Int(val))
-      }
-      else {
-        var glyph = glyph
-        // If no top accent is defined then it is the center of the advance width.
-        var advances = CGSize.zero
-        CTFontGetAdvancesForGlyphs(ctFont, .horizontal, &glyph, &advances, 1)
-        return advances.width/2
+    // Find the first variant with a different name.
+    for gvn in variantGlyphs {
+      if gvn != glyphName {
+        let variantGlyph = get(glyphWithName: gvn)
+        return variantGlyph
       }
     }
+    // We did not find any variants of this glyph so return it.
+    return glyph
+  }
 
-    // MARK: - Glyph Construction
+  // MARK: - Italic Correction
+  
 
-    /** Minimum overlap of connecting glyphs during glyph construction */
-    var minConnectorOverlap:CGFloat { constantFromTable("MinConnectorOverlap") }
-    
+  /** Returns the italic correction for the given glyph if any. If there
+   isn't any this returns 0. */
+  func getItalicCorrection(_ glyph: CGGlyph) -> CGFloat {
+    let glyphName = get(nameForGlyph: glyph)
+    if let val = italicsTable[glyphName] {
+      return self.fontUnitsToPt(Int(val))
+    }
+    return self.fontUnitsToPt(0)
+  }
+
+  // MARK: - Accents
+  
+
+  /** Returns the adjustment to the top accent for the given glyph if any.
+   If there isn't any this returns -1. */
+  func getTopAccentAdjustment(_ glyph: CGGlyph) -> CGFloat {
+    let glyphName = get(nameForGlyph: glyph)
+    if let val = accentsTable[glyphName]
+    {
+      return self.fontUnitsToPt(Int(val))
+    }
+    else {
+      var glyph = glyph
+      // If no top accent is defined then it is the center of the advance width.
+      var advances = CGSize.zero
+      CTFontGetAdvancesForGlyphs(ctFont, .horizontal, &glyph, &advances, 1)
+      return advances.width/2
+    }
+  }
+
+  // MARK: - Glyph Construction
+
+  /** Minimum overlap of connecting glyphs during glyph construction */
+  var minConnectorOverlap:CGFloat { constantFromTable("MinConnectorOverlap") }
+  
 
   /** Returns an array of the glyph parts to be used for constructing vertical variants
    of this glyph. If there is no glyph assembly defined, returns an empty array. */
@@ -344,5 +344,4 @@ public struct MTFont: Sendable {
       )
     }
   }
-
 }
