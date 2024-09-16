@@ -729,10 +729,9 @@ struct MTTypesetter {
         }
         var current:FoundationEssentials.AttributedString? = nil
         if atom.type == .placeholder {
-          //let color = MTTypesetter.placeholderColor
-          fatalError()
-//          current = AttributedString(atom.nucleus,
-//                                     attributes:FoundationEssentials.AttributeContainer().foregroundColor(color.cgColor))
+          let color = MTTypesetter.placeholderColor
+          current = AttributedString(atom.nucleus,
+                                     attributes:FoundationEssentials.AttributeContainer().foregroundColor(color.cgColor))
         } else {
           current = AttributedString(atom.nucleus)
         }

@@ -1,5 +1,3 @@
-import Foundation
-
 //
 //  Created by Mike Griebling on 2022-12-31.
 //  Translated from an Objective-C implementation by 安志钢.

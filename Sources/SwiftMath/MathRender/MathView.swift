@@ -7,6 +7,24 @@
 
 import SwiftUI
 
+public enum MTMathUILabelMode {
+    /// Display mode. Equivalent to $$ in TeX
+    case display
+    /// Text mode. Equivalent to $ in TeX.
+    case text
+}
+
+/**
+    Horizontal text alignment for `MTMathUILabel`.
+ */
+public enum MTTextAlignment : UInt {
+    /// Align left.
+    case left
+    /// Align center.
+    case center
+    /// Align right.
+    case right
+}
 
 @available(macOS 13.0, *)
 public struct MathView : View {

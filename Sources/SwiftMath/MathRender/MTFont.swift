@@ -44,7 +44,7 @@ public struct MTFont: Sendable {
     let parts:[Assembly]
   }
   
-  let defaultCGFont: CGFont
+  let defaultCGFont: CGFont = CGFont("HelveticaNeue-Light" as CFString)!
   var ctFont: CTFont
   let constantsTable: Dictionary<String, Int>
   let verticalVariantsTable: Dictionary<String, [String]>
@@ -315,7 +315,7 @@ public struct MTFont: Sendable {
       // If no top accent is defined then it is the center of the advance width.
       var advances = CGSize.zero
       CTFontGetAdvancesForGlyphs(ctFont, .horizontal, &glyph, &advances, 1)
-      return advances.width/2
+      return advances.width/2.0
     }
   }
 

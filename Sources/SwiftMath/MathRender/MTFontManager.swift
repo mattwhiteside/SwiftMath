@@ -7,7 +7,7 @@
 //  MIT license. See the LICENSE file for details.
 //
 
-import Foundation
+public typealias CGFloat = Double
 
 public final class MTFontManager:Sendable {
     

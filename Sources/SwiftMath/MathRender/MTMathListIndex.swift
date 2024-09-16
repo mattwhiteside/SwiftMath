@@ -6,8 +6,6 @@
 //  MIT license. See the LICENSE file for details.
 //
 
-import Foundation
-
 /**
  * An index that points to a particular character in the MTMathList. The index is a LinkedList that represents
  * a path from the beginning of the MTMathList to reach a particular atom in the list. The next node of the path

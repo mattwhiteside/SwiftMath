@@ -6,9 +6,6 @@
 //  MIT license. See the LICENSE file for details.
 //
 
-import Foundation
- 
-
 /**
  The font style of a character.
 
@@ -246,8 +243,12 @@ func isNotBinaryOperator(_ prevNode:MT.MathAtom?) -> Bool {
 }
 
 
+extension __NSRange: Equatable {
+  public static func ==(lhs:__NSRange, rhs:__NSRange) -> Bool {
+    return lhs.length == rhs.length && lhs.location == rhs.location
+  }
+}
 // MARK: - MTAccent
-
 
 
 /**
@@ -293,11 +294,6 @@ extension MTMathList {
     public var string: String { self.description }
 }
 
-extension NSRange {
-  init(_ range:__NSRange) {
-    self = NSMakeRange(range.location, range.length)
-  }
-}
 /** A representation of a list of math objects.
 
     This list can be constructed directly or built with
@@ -326,13 +322,13 @@ public struct MTMathList: Sendable {
     /// This function does not modify the current MTMathList
     public var finalized: MTMathList {
         var finalizedList = MTMathList()
-        let zeroRange = NSMakeRange(0, 0)
+      let zeroRange = __NSRange(location: 0, length: 0)
         
         var prevNode: MT.MathAtom? = nil
         for atom in self.atoms {
             var newNode = atom.finalized
             
-            if NSEqualRanges(zeroRange, NSRange(atom.indexRange)) {
+            if zeroRange == atom.indexRange {
               let index = prevNode == nil ? 0 : prevNode!.indexRange.location + prevNode!.indexRange.length
               newNode.indexRange = __NSRange(location:index, length:1)
             }
@@ -374,26 +370,26 @@ public struct MTMathList: Sendable {
     }
         
     func NSParamException(_ param:Any?) {
-        if param == nil {
-            NSException(name: NSExceptionName(rawValue: "Error"), reason: "Parameter cannot be nil").raise()
-        }
+      if param == nil {
+        fatalError("Parameter cannot be nil")
+      }
     }
     
     func NSIndexException(_ array:[Any], index: Int) {
-        guard !array.indices.contains(index) else { return }
-        NSException(name: NSExceptionName(rawValue: "Error"), reason: "Index \(index) out of bounds").raise()
+      guard !array.indices.contains(index) else { return }
+      fatalError("Index \(index) out of bounds")
     }
     
     /// Add an atom to the end of the list.
     /// - parameter atom: The atom to be inserted. This cannot be `nil` and cannot have the type `kMT.MathAtomBoundary`.
     /// - throws NSException if the atom is of type `kMT.MathAtomBoundary`
     public mutating func add(_ atom: MT.MathAtom?) {
-        guard let atom = atom else { return }
-        if self.isAtomAllowed(atom) {
-            self.atoms.append(atom)
-        } else {
-            NSException(name: NSExceptionName(rawValue: "Error"), reason: "Cannot add atom of type \(atom.type.rawValue) into mathlist").raise()
-        }
+      guard let atom = atom else { return }
+      if self.isAtomAllowed(atom) {
+        self.atoms.append(atom)
+      } else {
+        fatalError("Cannot add atom of type \(atom.type.rawValue) into mathlist")
+      }
     }
     
     /// Inserts an atom at the given index. If index is already occupied, the objects at index and beyond are
@@ -412,7 +408,7 @@ public struct MTMathList: Sendable {
             // NSIndexException(self.atoms, index: index)
             self.atoms.insert(atom, at: index)
         } else {
-            NSException(name: NSExceptionName(rawValue: "Error"), reason: "Cannot add atom of type \(atom.type.rawValue) into mathlist").raise()
+          fatalError("Cannot add atom of type \(atom.type.rawValue) into mathlist")
         }
     }
     
