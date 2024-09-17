@@ -984,9 +984,9 @@ public struct CTLineDisplay {
     public var textColor: MTColor? {
       set {
         _textColor = newValue
-        /*var*/let newAttrStr = attributedString!            
-        //let range = newAttrStr.characters.startIndex..<newAttrStr.characters.endIndex
-        //newAttrStr[range].foregroundColor = self.textColor!.cgColor
+        var newAttrStr = attributedString!            
+        let range = newAttrStr.characters.startIndex..<newAttrStr.characters.endIndex
+        newAttrStr[range].foregroundColor = self.textColor!.cgColor
         self.attributedString = newAttrStr
       }
       get { _textColor }
