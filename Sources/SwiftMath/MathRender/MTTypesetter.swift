@@ -53,7 +53,6 @@ let interElementSpaceArray:[[InterElementSpaceType]] =
   [.nsMedium, .nsThin,   .nsMedium, .nsThick, .none,     .none,    .none,    .nsThin]     // radical
 ]
 
-//private let interElementLock = NSLock()
 
 let queue = DispatchQueue(label: "interElementQueue")
 

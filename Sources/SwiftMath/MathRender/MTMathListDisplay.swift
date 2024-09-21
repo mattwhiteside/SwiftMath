@@ -14,6 +14,7 @@ import SwiftUI
 @attached(peer, names: arbitrary)
 public macro AddConformances(_ structSkeletons:String...) = #externalMacro(module: "MattsMacrosImpl", type: "ContextWalkerMacro")
 
+
 public enum MT {
     
   public protocol MathAtom: Sendable {
@@ -68,10 +69,6 @@ public enum MT {
     
     public var type: MT.AtomType
     public var nucleus:String
-//    public init() {
-//      self.type = .ordinary
-//      self.nucleus = ""
-//    }
     
     public var core: MT.GenericMathAtom {
       get {
@@ -82,7 +79,6 @@ public enum MT {
       }
     }
     
-    //public let type: MT.AtomType
     public var subScript: MTMathList? {
       didSet {
         if subScript != nil && !self.isScriptAllowed() {
@@ -101,8 +97,6 @@ public enum MT {
       }
     }
     
-    /** The nucleus of the atom. */
-    //public let nucleus: String
       
     public var indexRange = __NSRange(location: 0, length: 0) // indexRange in list that this atom tracks:
       
@@ -133,41 +127,8 @@ public enum MT {
       self.type = type
       self.nucleus = type == .radical ? "" : value
     }
-      
-//      /// Returns a copy of `self`.
-//      public func copy() -> MTMathAtom {
-//          switch self.type {
-//              case .largeOperator:
-//                  return MTLargeOperator(self as? MTLargeOperator)
-//              case .fraction:
-//                  return MTFraction(self as? MTFraction)
-//              case .radical:
-//                  return MTRadical(self as? MTRadical)
-//              case .style:
-//                  return MTMathStyle(self as? MTMathStyle)
-//              case .inner:
-//                  return MTInner(self as? MTInner)
-//              case .underline:
-//                  return MTUnderLine(self as? MTUnderLine)
-//              case .overline:
-//                  return MTOverLine(self as? MTOverLine)
-//              case .accent:
-//                  return MTAccent(self as? MTAccent)
-//              case .space:
-//                  return MTMathSpace(self as? MTMathSpace)
-//              case .color:
-//                  return MTMathColor(self as? MTMathColor)
-//              case .textcolor:
-//                  return MTMathTextColor(self as? MTMathTextColor)
-//              case .colorBox:
-//                  return MTMathColorbox(self as? MTMathColorbox)
-//              case .table:
-//                  return MTMathTable(self as! MTMathTable)
-//              default:
-//                  return MTMathAtom(self)
-//          }
-//      }
-      
+
+
     public var description: String {
       var string = ""
       string += self.nucleus
@@ -235,50 +196,6 @@ public enum MT {
     public func isNotBinaryOperator() -> Bool { self.type.isNotBinaryOperator() }
   }
 
-  
-//  public struct GenericMathAtom: MT.MathAtom {
-//    
-//    public let type = MT.AtomType.ordinary
-//    public var nucleus: String = ""
-//    public var indexRange = __NSRange(location: 0, length: 0)
-//    public var fontStyle = MTFontStyle.defaultStyle
-//    public var fusedAtoms = [any MT.MathAtom]()
-//    
-//    public var core:GenericMathAtom {
-//      get {
-//        self
-//      }
-//      set {
-//        self = newValue
-//      }
-//    }
-//    
-//    public var subScript: MTMathList? {
-//      didSet {
-//        if subScript != nil && !self.isScriptAllowed() {
-//          subScript = nil
-//          NSException(name: NSExceptionName(rawValue: "Error"), reason: "Subscripts not allowed for atom of type \\(self.type)").raise()
-//        }
-//      }
-//    }
-//    
-//    public var superScript: MTMathList? {
-//      didSet {
-//        if superScript != nil && !self.isScriptAllowed() {
-//          superScript = nil
-//          NSException(name: NSExceptionName(rawValue: "Error"), reason: "Superscripts not allowed for atom of type \\(self.type)").raise()
-//        }
-//      }
-//    }
-//      
-//    public var finalized: any MT.MathAtom {
-//      var finalized = self
-//      finalized.superScript = finalized.superScript?.finalized
-//      finalized.subScript = finalized.subScript?.finalized
-//      return finalized
-//    }
-//  }
-
   public struct Fraction: MT.MathAtom {    
 
     public var hasRule: Bool = true
@@ -334,78 +251,6 @@ public enum MT {
       
   }
 
-
-//  public struct Fraction: MT.MathAtom {
-//    
-//    public let type = MT.AtomType.fraction
-//    
-//    public var hasRule: Bool = true
-//    public var leftDelimiter = ""
-//    public var rightDelimiter = ""
-//    private let _numerator: MTMathList
-//    private let _denominator: MTMathList
-//    
-//    public var core = GenericMathAtom()
-//    
-//    var numerator:MTMathList {
-//      get {
-//        return _numerator
-//      }
-//      set {
-//        self = .init(numerator:newValue, denominator:_denominator, hasRule:hasRule)
-//      }
-//    }
-//    
-//    var denominator:MTMathList {
-//      get {
-//        return _denominator
-//      }
-//      set {
-//        self = .init(numerator:_numerator, denominator:newValue, hasRule:hasRule)
-//      }
-//    }
-//      
-//    public init(){
-//      self._numerator = MTMathList(atoms:[MTMathAtomFactory.placeholder()])
-//      self._denominator = MTMathList(atoms:[MTMathAtomFactory.placeholder()])
-//    }
-//    
-//    init(numerator:MTMathList?, denominator:MTMathList?, hasRule rule:Bool = true) {
-//      self.init()
-//      self.hasRule = rule
-//      if let num = numerator {
-//        self._numerator = num
-//      }
-//      if let denom = denominator {
-//        self._denominator = denom
-//      }
-//    }
-//      
-//    public var description: String {
-//      var string = self.hasRule ? "\\frac" : "\\atop"
-//      if !self.leftDelimiter.isEmpty {
-//        string += "[\(self.leftDelimiter)]"
-//      }
-//      if !self.rightDelimiter.isEmpty {
-//        string += "[\(self.rightDelimiter)]"
-//      }
-//      string += "{\(self.numerator.description)}{\(self.denominator.description)}"
-//      if let sup = self.superScript {
-//        string += "^{\(sup.description)}"
-//      }
-//      if let sub = self.subScript {
-//        string += "_{\(sub.description)}"
-//      }
-//      return string
-//    }
-//      
-//    public var finalized: MT.Fraction {
-//      var copy = core.finalized
-//      copy.numerator = copy.numerator.finalized
-//      copy.denominator = copy.denominator.finalized
-//      return copy
-//    }
-//  }
 
   // MARK: - Inner
   /** An inner atom. This denotes an atom which contains a math list inside it. An inner atom
@@ -475,6 +320,7 @@ public enum MT {
     }
   }
 
+
   // MARK: - OverLIne
   /** An atom with a line over the contained math list. */
   public struct OverLine: MT.MathAtom {
@@ -495,6 +341,7 @@ public enum MT {
       self.innerList = MTMathList(over!.innerList)
     }
   }
+
 
   // MARK: - UnderLine
   /** An atom with a line under the contained math list. */
@@ -544,6 +391,7 @@ public enum MT {
     }
   }
 
+
   // MARK: - MathSpace
   /** An atom representing space.
    Note: None of the usual fields of the `MT.MathAtom` apply even though this
@@ -592,6 +440,7 @@ public enum MT {
       self.style = style
     }
   }
+
 
   // MARK: - MathColor
   /** An atom representing an color element.
